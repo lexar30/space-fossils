@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "[PRE-PUSH] Build and test Debug"
+./scripts/build_and_test_debug.sh
+
+echo
+
+echo "[PRE-PUSH] Build and test Release"
+./scripts/build_and_test_release.sh
+
+echo "[PRE-PUSH] OK"

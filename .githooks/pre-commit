@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "[PRE-COMMIT] Build and test Debug"
+./scripts/build_and_test_debug.sh
+
+echo "[PRE-COMMIT] OK"
