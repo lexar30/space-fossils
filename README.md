@@ -1,5 +1,7 @@
 # space-fossils
 
+The goal is a lightweight disk usage visualizer: scan a directory tree, calculate file/folder sizes, and later visualize the result.
+
 Current structure:
 
 * `core/` — core library code
