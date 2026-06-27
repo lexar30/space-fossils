@@ -1,0 +1,41 @@
+#pragma once
+
+#include <cstdint>
+#include <memory>
+#include <string>
+
+namespace space_fossils::core {
+
+	class FileTreeNode;
+
+	class FileTree
+	{
+	public:
+		FileTree();
+		~FileTree();
+
+		FileTree(const FileTree&) = delete;
+		FileTree& operator=(const FileTree&) = delete;
+
+		FileTree(FileTree&& other) noexcept;
+		FileTree& operator=(FileTree&& other) noexcept;
+
+		FileTreeNode* GetRoot();
+		const FileTreeNode* GetRoot() const;
+		
+		bool IsEmpty() const;
+		std::uint64_t GetSize() const;
+
+		FileTreeNode& CreateRootFile(std::string name, std::uint64_t size);
+		FileTreeNode& CreateRootDirectory(std::string name);
+
+		std::uint64_t RecalculateSizeRecursive();
+
+		bool IsDirty() const;
+
+		void Clear();
+
+	private:
+		std::unique_ptr<FileTreeNode> root;
+	};
+}

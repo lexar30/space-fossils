@@ -4,43 +4,43 @@
 #include <utility>
 
 namespace space_fossils::core {
-	space_fossils::core::FileTreeNode::FileTreeNode(std::string name, FileTreeNodeType type, std::uint64_t size)
+	FileTreeNode::FileTreeNode(std::string name, FileTreeNodeType type, std::uint64_t size)
 		: type(type)
 		, name(std::move(name))
 		, size(size)
 	{ }
 
-	FileTreeNode::FileTreeNodeType space_fossils::core::FileTreeNode::GetType() const
+	FileTreeNode::FileTreeNodeType FileTreeNode::GetType() const
 	{
 		return type;
 	}
 
-	std::string_view space_fossils::core::FileTreeNode::GetName() const
+	std::string_view FileTreeNode::GetName() const
 	{
 		return name;
 	}
 
-	std::uint64_t space_fossils::core::FileTreeNode::GetSize() const
+	std::uint64_t FileTreeNode::GetSize() const
 	{
 		return size;
 	}
 
-	FileTreeNode* space_fossils::core::FileTreeNode::GetParent()
+	FileTreeNode* FileTreeNode::GetParent()
 	{
 		return parent;
 	}
 
-	const FileTreeNode* space_fossils::core::FileTreeNode::GetParent() const
+	const FileTreeNode* FileTreeNode::GetParent() const
 	{
 		return parent;
 	}
 
-	const std::vector<std::unique_ptr<FileTreeNode>>& space_fossils::core::FileTreeNode::GetChildren() const
+	const std::vector<std::unique_ptr<FileTreeNode>>& FileTreeNode::GetChildren() const
 	{
 		return children;
 	}
 
-	FileTreeNode& space_fossils::core::FileTreeNode::AddDirectory(std::string name)
+	FileTreeNode& FileTreeNode::AddDirectory(std::string name)
 	{
 		assert(type == FileTreeNodeType::Directory);
 
@@ -55,7 +55,7 @@ namespace space_fossils::core {
 		return childRef;
 	}
 
-	FileTreeNode& space_fossils::core::FileTreeNode::AddFile(std::string name, std::uint64_t size)
+	FileTreeNode& FileTreeNode::AddFile(std::string name, std::uint64_t size)
 	{
 		assert(type == FileTreeNodeType::Directory);
 
@@ -70,7 +70,7 @@ namespace space_fossils::core {
 		return childRef;
 	}
 
-	void space_fossils::core::FileTreeNode::SetRecursiveDirty()
+	void FileTreeNode::SetRecursiveDirty()
 	{
 		isDirty = true;
 		if (parent != nullptr) {
@@ -78,12 +78,12 @@ namespace space_fossils::core {
 		}
 	}
 
-	bool space_fossils::core::FileTreeNode::IsDirty() const
+	bool FileTreeNode::IsDirty() const
 	{
 		return isDirty;
 	}
 
-	std::uint64_t space_fossils::core::FileTreeNode::RecalculateSizeRecursive()
+	std::uint64_t FileTreeNode::RecalculateSizeRecursive()
 	{
 		if (!isDirty) {
 			return size;
