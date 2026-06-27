@@ -1,5 +1,7 @@
 #pragma once
 
+#include "space_fossils_tests/tests.hxx"
+
 #include <type_traits>
 #include <iostream>
 #include <cstdlib>
@@ -30,11 +32,21 @@ namespace space_fossils::tests {
         } \
     } while(0)
 
-#define SF_RUN_TEST(name) do { \
-        std::cout << "[ = START  " << #name << " = ] \n"; \
-        std::cout << "[   RUN    " << #name << "   ] \n"; \
-        name(); \
-        std::cout << "[      OK  " << #name << "   ] \n"; \
-        std::cout << "[ = END    " << #name << " = ] \n"; \
-        std::cout << "------------------------------------" << "\n\n"; \
-    } while(0)
+#define SF_CONCAT_IMPL(a,b) a##b
+#define SF_CONCAT(a,b) SF_CONCAT_IMPL(a,b)
+#define SF_TEST_FUNCTION_NAME(suite, name) SF_CONCAT(SF_CONCAT(suite, _), name)
+#define SF_TEST_REGISTRAR_NAME(suite, name) SF_CONCAT(SF_TEST_FUNCTION_NAME(suite, name), _registrar)
+#define SF_TEST_REGISTRAR_INSTANCE_NAME(suite, name) SF_CONCAT(SF_TEST_FUNCTION_NAME(suite, name), _registrar_instance)
+
+#define SF_TEST(suite, name) \
+    static void SF_TEST_FUNCTION_NAME(suite, name)(); \
+    namespace { \
+        struct SF_TEST_REGISTRAR_NAME(suite, name) { \
+            SF_TEST_REGISTRAR_NAME(suite, name)() \
+            { \
+                ::space_fossils::tests::RegisterTest(#suite, #name, &SF_TEST_FUNCTION_NAME(suite, name)); \
+            } \
+        }; \
+        [[maybe_unused]] const SF_TEST_REGISTRAR_NAME(suite, name) SF_TEST_REGISTRAR_INSTANCE_NAME(suite, name); \
+    } \
+    static void SF_TEST_FUNCTION_NAME(suite, name)()

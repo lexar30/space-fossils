@@ -3,3 +3,9 @@
 *.json text eol=lf
 *.cmake text eol=lf
 CMakeLists.txt text eol=lf
+*.sh text eol=lf
+.githooks/* text eol=lf
+*.hxx text eol=lf
+*.cxx text eol=lf
+*.txt text eol=lf
+*.md text eol=lf

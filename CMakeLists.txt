@@ -6,13 +6,26 @@ add_library (space_fossils_core STATIC)
 add_executable (space_fossils_app)
 add_executable (space_fossils_tests)
 
+file(GLOB SPACE_FOSSILS_TEST_SOURCE_FILES
+	CONFIGURE_DEPENDS
+		tests/*_tests.cxx
+)
+
+list(REMOVE_ITEM SPACE_FOSSILS_TEST_SOURCE_FILES
+	"${CMAKE_CURRENT_SOURCE_DIR}/tests/main_tests.cxx"
+)
+
 target_sources(space_fossils_core
 	PRIVATE
 		core/core.cxx
 		core/size_formatter.cxx
+		core/file_tree.cxx
+		core/file_tree_node.cxx
 		
 		core/include/space_fossils/core.hxx
 		core/include/space_fossils/size_formatter.hxx
+		core/include/space_fossils/file_tree.hxx
+		core/include/space_fossils/file_tree_node.hxx
 )
 
 target_include_directories(space_fossils_core
@@ -39,6 +52,7 @@ target_sources(space_fossils_tests
 	PRIVATE
 		tests/main_tests.cxx
 		tests/tests.cxx
+		${SPACE_FOSSILS_TEST_SOURCE_FILES}
 		
 		tests/include/space_fossils_tests/micro_test_framework.hxx
 		tests/include/space_fossils_tests/tests.hxx
@@ -56,7 +70,12 @@ target_link_libraries(space_fossils_tests
 
 enable_testing()
 
-add_test(
-	NAME space_fossils_tests
-	COMMAND space_fossils_tests
-)
+foreach(test_source_file IN LISTS SPACE_FOSSILS_TEST_SOURCE_FILES)
+	get_filename_component(test_source_name "${test_source_file}" NAME_WE)
+	string(REGEX REPLACE "_tests$" "" test_suite_name "${test_source_name}")
+
+	add_test(
+		NAME "space_fossils_${test_suite_name}_tests"
+		COMMAND space_fossils_tests "${test_suite_name}"
+	)
+endforeach()
