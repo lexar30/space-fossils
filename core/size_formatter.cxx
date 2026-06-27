@@ -1,6 +1,8 @@
 #include "space_fossils/size_formatter.hxx"
+
 #include <array>
 #include <limits>
+#include <string_view>
 
 
 namespace space_fossils::core {
@@ -81,14 +83,21 @@ namespace space_fossils::core {
 		}
 	}
 
-	std::string FormatFileSize(std::uint64_t fileSize, space_fossils::core::UnitFormatStyle unitFormatStyle, std::size_t decimalPlaces)
+	std::string FormatFileSize(std::uint64_t fileSize, space_fossils::core::FileSizeUnitSystem unitFormatStyle, std::size_t decimalPlaces)
 	{
+		decimalPlaces = decimalPlaces > MaxDecimalPlaces ? MaxDecimalPlaces : decimalPlaces;
+
 		std::size_t unitIndex = 0;
 
-		const std::array<UnitDefinition, UnitsCount>& units = unitFormatStyle == UnitFormatStyle::Binary ? binary_units::Units : decimal_units::Units;
+		const std::array<UnitDefinition, UnitsCount>& units = unitFormatStyle == FileSizeUnitSystem::Binary ? binary_units::Units : decimal_units::Units;
 
 		while (unitIndex + 1 < UnitsCount) {
-			if (fileSize < units.at(unitIndex).promotionPoint) {
+			const std::uint64_t promotionPoint =
+				decimalPlaces == 0
+				? units.at(unitIndex + 1).divisor
+				: units.at(unitIndex).promotionPoint;
+
+			if (fileSize < promotionPoint) {
 				break;
 			}
 

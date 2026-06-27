@@ -6,7 +6,4 @@ namespace space_fossils::tests {
 
 	void BasicChecks();
 
-	void SizeFormatterBinaryUnitStyleTests();
-	void SizeFormatterDecimalUnitStyleTests();
-
 }

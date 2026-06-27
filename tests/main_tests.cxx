@@ -1,4 +1,5 @@
 #include "space_fossils_tests/tests.hxx"
+
 #include <iostream>
 
 int main()

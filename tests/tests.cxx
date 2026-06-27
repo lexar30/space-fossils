@@ -1,4 +1,6 @@
 #include "space_fossils_tests/tests.hxx"
+
+#include "space_fossils/size_formatter.hxx"
 #include "space_fossils_tests/micro_test_framework.hxx"
 
 #include <cstdint>
@@ -6,8 +8,6 @@
 #include <string_view>
 #include <limits>
 #include <vector>
-
-#include "space_fossils/size_formatter.hxx"
 
 namespace space_fossils::tests {
 
@@ -31,9 +31,15 @@ namespace space_fossils::tests {
 			SF_ASSERT_EQ(space_fossils::core::FormatFileSize(1024), "1.0 KiB");
 		}
 
+		void SizeFormatterDecimalPlacesLimitTests()
+		{
+			SF_ASSERT_EQ(space_fossils::core::FormatFileSize(1536, space_fossils::core::FileSizeUnitSystem::Binary, 7), "1.500000 KiB");
+			SF_ASSERT_EQ(space_fossils::core::FormatFileSize(1500, space_fossils::core::FileSizeUnitSystem::Decimal, 1000000), "1.500000 KB");
+		}
+
 		void RunFormatterForData(
 			const std::vector<std::pair<std::uint64_t, std::string>>& testCases
-			, space_fossils::core::UnitFormatStyle unitFormatStyle
+			, space_fossils::core::FileSizeUnitSystem unitFormatStyle
 			, std::size_t decimalPlaces = space_fossils::core::DefaultDecimalPlaces
 		)
 		{
@@ -72,21 +78,24 @@ namespace space_fossils::tests {
 				, {std::numeric_limits<std::uint64_t>::max()			, "15.9 EiB"}
 			};
 
-			RunFormatterForData(testCases, space_fossils::core::UnitFormatStyle::Binary);
+			RunFormatterForData(testCases, space_fossils::core::FileSizeUnitSystem::Binary);
 
 			std::vector<std::pair<std::uint64_t, std::string>> noDecimalPlacesTestCases{
 				  {42													, "42 B"}
-				, {128													, "0 KiB"}
+				, {127													, "127 B"}
+				, {128													, "128 B"}
+				, {1023													, "1023 B"}
 				, {1024													, "1 KiB"}
 				, {1536													, "1 KiB"}
 				, {2048													, "2 KiB"}
 				, {std::uint64_t(1024) * 128 - 1						, "127 KiB"}
-				, {std::uint64_t(1024) * 128							, "0 MiB"}
+				, {std::uint64_t(1024) * 128							, "128 KiB"}
+				, {std::uint64_t(1024) * 1024 - 1						, "1023 KiB"}
 				, {std::uint64_t(1024) * 1024							, "1 MiB"}
 				, {std::numeric_limits<std::uint64_t>::max()			, "15 EiB"}
 			};
 
-			RunFormatterForData(noDecimalPlacesTestCases, space_fossils::core::UnitFormatStyle::Binary, 0);
+			RunFormatterForData(noDecimalPlacesTestCases, space_fossils::core::FileSizeUnitSystem::Binary, 0);
 
 			std::vector<std::pair<std::uint64_t, std::string>> twoDecimalPlacesTestCases{
 				  {42													, "42 B"}
@@ -101,7 +110,7 @@ namespace space_fossils::tests {
 				, {std::numeric_limits<std::uint64_t>::max()			, "15.99 EiB"}
 			};
 
-			RunFormatterForData(twoDecimalPlacesTestCases, space_fossils::core::UnitFormatStyle::Binary, 2);
+			RunFormatterForData(twoDecimalPlacesTestCases, space_fossils::core::FileSizeUnitSystem::Binary, 2);
 
 			std::vector<std::pair<std::uint64_t, std::string>> threeDecimalPlacesTestCases{
 				  {42													, "42 B"}
@@ -113,7 +122,7 @@ namespace space_fossils::tests {
 				, {std::uint64_t(1024) * 1024 * 1024 * 1024 * 1024 * 1024, "1.000 EiB"}
 			};
 
-			RunFormatterForData(threeDecimalPlacesTestCases, space_fossils::core::UnitFormatStyle::Binary, 3);
+			RunFormatterForData(threeDecimalPlacesTestCases, space_fossils::core::FileSizeUnitSystem::Binary, 3);
 		}
 
 		void SizeFormatterDecimalUnitStyleTests()
@@ -144,21 +153,24 @@ namespace space_fossils::tests {
 				, {std::numeric_limits<std::uint64_t>::max()			, "18.4 EB"}
 			};
 
-			RunFormatterForData(testCases, space_fossils::core::UnitFormatStyle::Decimal);
+			RunFormatterForData(testCases, space_fossils::core::FileSizeUnitSystem::Decimal);
 
 			std::vector<std::pair<std::uint64_t, std::string>> noDecimalPlacesTestCases{
 				  {42													, "42 B"}
-				, {100													, "0 KB"}
+				, {99													, "99 B"}
+				, {100													, "100 B"}
+				, {999													, "999 B"}
 				, {1000													, "1 KB"}
 				, {1500													, "1 KB"}
 				, {2000													, "2 KB"}
 				, {std::uint64_t(1000) * 100 - 1						, "99 KB"}
-				, {std::uint64_t(1000) * 100							, "0 MB"}
+				, {std::uint64_t(1000) * 100							, "100 KB"}
+				, {std::uint64_t(1000) * 1000 - 1						, "999 KB"}
 				, {std::uint64_t(1000) * 1000							, "1 MB"}
 				, {std::numeric_limits<std::uint64_t>::max()			, "18 EB"}
 			};
 
-			RunFormatterForData(noDecimalPlacesTestCases, space_fossils::core::UnitFormatStyle::Decimal, 0);
+			RunFormatterForData(noDecimalPlacesTestCases, space_fossils::core::FileSizeUnitSystem::Decimal, 0);
 
 			std::vector<std::pair<std::uint64_t, std::string>> twoDecimalPlacesTestCases{
 				  {42													, "42 B"}
@@ -173,7 +185,7 @@ namespace space_fossils::tests {
 				, {std::numeric_limits<std::uint64_t>::max()			, "18.44 EB"}
 			};
 
-			RunFormatterForData(twoDecimalPlacesTestCases, space_fossils::core::UnitFormatStyle::Decimal, 2);
+			RunFormatterForData(twoDecimalPlacesTestCases, space_fossils::core::FileSizeUnitSystem::Decimal, 2);
 
 			std::vector<std::pair<std::uint64_t, std::string>> threeDecimalPlacesTestCases{
 				  {42													, "42 B"}
@@ -185,7 +197,7 @@ namespace space_fossils::tests {
 				, {std::uint64_t(1000) * 1000 * 1000 * 1000 * 1000 * 1000, "1.000 EB"}
 			};
 
-			RunFormatterForData(threeDecimalPlacesTestCases, space_fossils::core::UnitFormatStyle::Decimal, 3);
+			RunFormatterForData(threeDecimalPlacesTestCases, space_fossils::core::FileSizeUnitSystem::Decimal, 3);
 		}
 	}
 
@@ -194,6 +206,7 @@ namespace space_fossils::tests {
 		SF_RUN_TEST(BasicChecks);
 
 		SF_RUN_TEST(SizeFormatterTests::SizeFormatterDefaultArgumentTests);
+		SF_RUN_TEST(SizeFormatterTests::SizeFormatterDecimalPlacesLimitTests);
 		SF_RUN_TEST(SizeFormatterTests::SizeFormatterBinaryUnitStyleTests);
 		SF_RUN_TEST(SizeFormatterTests::SizeFormatterDecimalUnitStyleTests);
 
