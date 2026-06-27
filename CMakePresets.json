@@ -63,8 +63,7 @@
       "configurePreset": "windows-vs2022",
       "configuration": "Debug",
       "output": {
-        "outputOnFailure": true,
-        "verbosity": "verbose"
+        "outputOnFailure": true
       }
     },
     {
@@ -73,8 +72,7 @@
       "configurePreset": "windows-vs2022",
       "configuration": "Release",
       "output": {
-        "outputOnFailure": true,
-        "verbosity": "verbose"
+        "outputOnFailure": true
       }
     },
     {
@@ -82,8 +80,7 @@
       "displayName": "Test Linux Ninja Debug",
       "configurePreset": "linux-ninja-debug",
       "output": {
-        "outputOnFailure": true,
-        "verbosity": "verbose"
+        "outputOnFailure": true
       }
     },
     {
@@ -91,8 +88,7 @@
       "displayName": "Test Linux Ninja Release",
       "configurePreset": "linux-ninja-release",
       "output": {
-        "outputOnFailure": true,
-        "verbosity": "verbose"
+        "outputOnFailure": true
       }
     }
   ]

@@ -9,7 +9,10 @@ add_executable (space_fossils_tests)
 target_sources(space_fossils_core
 	PRIVATE
 		core/core.cxx
+		core/size_formatter.cxx
+		
 		core/include/space_fossils/core.hxx
+		core/include/space_fossils/size_formatter.hxx
 )
 
 target_include_directories(space_fossils_core
@@ -35,9 +38,10 @@ target_link_libraries(space_fossils_app
 target_sources(space_fossils_tests
 	PRIVATE
 		tests/main_tests.cxx
+		tests/tests.cxx
+		
 		tests/include/space_fossils_tests/micro_test_framework.hxx
 		tests/include/space_fossils_tests/tests.hxx
-		tests/tests.cxx
 )
 
 target_include_directories(space_fossils_tests
