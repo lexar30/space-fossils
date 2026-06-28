@@ -21,11 +21,13 @@ target_sources(space_fossils_core
 		core/size_formatter.cxx
 		core/file_tree.cxx
 		core/file_tree_node.cxx
+		core/file_scanner.cxx
 		
 		core/include/space_fossils/core.hxx
 		core/include/space_fossils/size_formatter.hxx
 		core/include/space_fossils/file_tree.hxx
 		core/include/space_fossils/file_tree_node.hxx
+		core/include/space_fossils/file_scanner.hxx
 )
 
 target_include_directories(space_fossils_core
@@ -66,6 +68,14 @@ target_include_directories(space_fossils_tests
 target_link_libraries(space_fossils_tests
 	PRIVATE
 		space_fossils_core
+)
+
+target_compile_definitions(space_fossils_tests
+	PRIVATE
+		SPACE_FOSSILS_FILE_SCANNER_FIXTURE_ROOT="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/file_scanner/non-empty/root"
+		SPACE_FOSSILS_FILE_SCANNER_FIXTURE_TEST_FILE="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/file_scanner/single-file/test_file.txt"
+		SPACE_FOSSILS_FILE_SCANNER_FIXTURE_ROOT_EMPTY="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/file_scanner/empty/root"
+		SPACE_FOSSILS_FILE_SCANNER_FIXTURE_INVALID_PATH="${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/file_scanner/invalid-path/root"
 )
 
 enable_testing()
