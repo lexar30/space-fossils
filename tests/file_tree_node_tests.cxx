@@ -166,8 +166,8 @@ namespace space_fossils::tests {
 
 		root.RecalculateSizeRecursive();
 
-		const std::uint64_t rootSize = root.GetSize();
-		const std::uint64_t subDirectorySize = subDirectory.GetSize();
+		const std::uintmax_t rootSize = root.GetSize();
+		const std::uintmax_t subDirectorySize = subDirectory.GetSize();
 
 		root.RecalculateSizeRecursive();
 

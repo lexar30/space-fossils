@@ -17,7 +17,7 @@ namespace space_fossils::core {
 		};
 
 	public:
-		FileTreeNode(std::string name, FileTreeNodeType type, std::uint64_t size);
+		FileTreeNode(std::string name, FileTreeNodeType type, std::uintmax_t size);
 
 		FileTreeNode(const FileTreeNode&) = delete;
 		FileTreeNode& operator=(const FileTreeNode&) = delete;
@@ -29,7 +29,7 @@ namespace space_fossils::core {
 		FileTreeNodeType GetType() const;
 
 		std::string_view GetName() const;
-		std::uint64_t GetSize() const;
+		std::uintmax_t GetSize() const;
 
 		FileTreeNode* GetParent();
 		const FileTreeNode* GetParent() const;
@@ -37,9 +37,9 @@ namespace space_fossils::core {
 		const std::vector<std::unique_ptr<FileTreeNode>>& GetChildren() const;
 		
 		FileTreeNode& AddDirectory(std::string name);
-		FileTreeNode& AddFile(std::string name, std::uint64_t size);
+		FileTreeNode& AddFile(std::string name, std::uintmax_t size);
 
-		std::uint64_t RecalculateSizeRecursive();
+		std::uintmax_t RecalculateSizeRecursive();
 		bool IsDirty() const;
 
 	private:
@@ -48,7 +48,7 @@ namespace space_fossils::core {
 	private:
 		FileTreeNodeType type = FileTreeNodeType::File;
 		std::string name;
-		std::uint64_t size = 0;
+		std::uintmax_t size = 0;
 
 		FileTreeNode* parent = nullptr;
 		std::vector<std::unique_ptr<FileTreeNode>> children;

@@ -25,7 +25,7 @@ namespace space_fossils::core {
 		return root == nullptr;
 	}
 
-	std::uint64_t FileTree::GetSize() const
+	std::uintmax_t FileTree::GetSize() const
 	{
 		return root == nullptr ? 0 : root->GetSize();
 	}
@@ -35,7 +35,7 @@ namespace space_fossils::core {
 		root.reset();
 	}
 
-	std::uint64_t FileTree::RecalculateSizeRecursive()
+	std::uintmax_t FileTree::RecalculateSizeRecursive()
 	{
 		return root == nullptr ? 0 : root->RecalculateSizeRecursive();
 	}
@@ -45,7 +45,7 @@ namespace space_fossils::core {
 		return root != nullptr && root->IsDirty();
 	}
 
-	FileTreeNode& FileTree::CreateRootFile(std::string name, std::uint64_t size)
+	FileTreeNode& FileTree::CreateRootFile(std::string name, std::uintmax_t size)
 	{
 		root = std::make_unique<FileTreeNode>(
 			  std::move(name)

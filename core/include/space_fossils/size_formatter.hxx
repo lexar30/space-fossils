@@ -15,7 +15,7 @@ namespace space_fossils::core {
 		, Decimal
 	};
 
-	std::string FormatFileSize(std::uint64_t fileSize
+	std::string FormatFileSize(std::uintmax_t fileSize
 		, FileSizeUnitSystem unitFormatStyle = FileSizeUnitSystem::Binary
 		, std::size_t decimalPlaces = DefaultDecimalPlaces
 	);

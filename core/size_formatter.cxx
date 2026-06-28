@@ -12,14 +12,14 @@ namespace space_fossils::core {
 
 		struct UnitDefinition
 		{
-			const std::uint64_t divisor;
-			const std::uint64_t promotionPoint;
+			const std::uintmax_t divisor;
+			const std::uintmax_t promotionPoint;
 			const std::string_view suffix;
 		};
 
 		constexpr UnitDefinition MakeUnit(
-			std::uint64_t divisor,
-			std::uint64_t promotionThreshold,
+			std::uintmax_t divisor,
+			std::uintmax_t promotionThreshold,
 			std::string_view suffix
 		)
 		{
@@ -32,17 +32,17 @@ namespace space_fossils::core {
 
 		namespace binary_units
 		{
-			inline constexpr std::uint64_t BinaryUnit = std::uint64_t(1024);
+			inline constexpr std::uintmax_t BinaryUnit = std::uintmax_t(1024);
 
-			inline constexpr std::uint64_t Bytes = std::uint64_t(1);
-			inline constexpr std::uint64_t KiB = Bytes * BinaryUnit;
-			inline constexpr std::uint64_t MiB = KiB * BinaryUnit;
-			inline constexpr std::uint64_t GiB = MiB * BinaryUnit;
-			inline constexpr std::uint64_t TiB = GiB * BinaryUnit;
-			inline constexpr std::uint64_t PiB = TiB * BinaryUnit;
-			inline constexpr std::uint64_t EiB = PiB * BinaryUnit;
+			inline constexpr std::uintmax_t Bytes = std::uintmax_t(1);
+			inline constexpr std::uintmax_t KiB = Bytes * BinaryUnit;
+			inline constexpr std::uintmax_t MiB = KiB * BinaryUnit;
+			inline constexpr std::uintmax_t GiB = MiB * BinaryUnit;
+			inline constexpr std::uintmax_t TiB = GiB * BinaryUnit;
+			inline constexpr std::uintmax_t PiB = TiB * BinaryUnit;
+			inline constexpr std::uintmax_t EiB = PiB * BinaryUnit;
 
-			inline constexpr std::uint64_t BinaryPromotionThreshold = std::uint64_t(128);
+			inline constexpr std::uintmax_t BinaryPromotionThreshold = std::uintmax_t(128);
 
 			inline constexpr std::array<UnitDefinition, UnitsCount> Units{
 					MakeUnit(Bytes,	BinaryPromotionThreshold,							"B")
@@ -51,24 +51,24 @@ namespace space_fossils::core {
 				  , MakeUnit(GiB,			BinaryPromotionThreshold,					"GiB")
 				  , MakeUnit(TiB,			BinaryPromotionThreshold,					"TiB")
 				  , MakeUnit(PiB,			BinaryPromotionThreshold,					"PiB")
-				  , UnitDefinition{EiB,		std::numeric_limits<std::uint64_t>::max(),	"EiB"}
+				  , UnitDefinition{EiB,		std::numeric_limits<std::uintmax_t>::max(),	"EiB"}
 
 			};
 		}
 
 		namespace decimal_units
 		{
-			inline constexpr std::uint64_t DecimalUnit = std::uint64_t(1000);
+			inline constexpr std::uintmax_t DecimalUnit = std::uintmax_t(1000);
 
-			inline constexpr std::uint64_t Bytes = std::uint64_t(1);
-			inline constexpr std::uint64_t KB = Bytes * DecimalUnit;
-			inline constexpr std::uint64_t MB = KB * DecimalUnit;
-			inline constexpr std::uint64_t GB = MB * DecimalUnit;
-			inline constexpr std::uint64_t TB = GB * DecimalUnit;
-			inline constexpr std::uint64_t PB = TB * DecimalUnit;
-			inline constexpr std::uint64_t EB = PB * DecimalUnit;
+			inline constexpr std::uintmax_t Bytes = std::uintmax_t(1);
+			inline constexpr std::uintmax_t KB = Bytes * DecimalUnit;
+			inline constexpr std::uintmax_t MB = KB * DecimalUnit;
+			inline constexpr std::uintmax_t GB = MB * DecimalUnit;
+			inline constexpr std::uintmax_t TB = GB * DecimalUnit;
+			inline constexpr std::uintmax_t PB = TB * DecimalUnit;
+			inline constexpr std::uintmax_t EB = PB * DecimalUnit;
 
-			inline constexpr std::uint64_t DecimalPromotionThreshold = std::uint64_t(100);
+			inline constexpr std::uintmax_t DecimalPromotionThreshold = std::uintmax_t(100);
 
 			inline constexpr std::array<UnitDefinition, UnitsCount> Units{
 					MakeUnit(Bytes,		DecimalPromotionThreshold,					"B")
@@ -77,13 +77,13 @@ namespace space_fossils::core {
 				  , MakeUnit(GB,		DecimalPromotionThreshold,					"GB")
 				  , MakeUnit(TB,		DecimalPromotionThreshold,					"TB")
 				  , MakeUnit(PB,		DecimalPromotionThreshold,					"PB")
-				  , UnitDefinition{EB,	std::numeric_limits<std::uint64_t>::max(),	"EB"}
+				  , UnitDefinition{EB,	std::numeric_limits<std::uintmax_t>::max(),	"EB"}
 
 			};
 		}
 	}
 
-	std::string FormatFileSize(std::uint64_t fileSize, space_fossils::core::FileSizeUnitSystem unitFormatStyle, std::size_t decimalPlaces)
+	std::string FormatFileSize(std::uintmax_t fileSize, space_fossils::core::FileSizeUnitSystem unitFormatStyle, std::size_t decimalPlaces)
 	{
 		decimalPlaces = decimalPlaces > MaxDecimalPlaces ? MaxDecimalPlaces : decimalPlaces;
 
@@ -92,7 +92,7 @@ namespace space_fossils::core {
 		const std::array<UnitDefinition, UnitsCount>& units = unitFormatStyle == FileSizeUnitSystem::Binary ? binary_units::Units : decimal_units::Units;
 
 		while (unitIndex + 1 < UnitsCount) {
-			const std::uint64_t promotionPoint =
+			const std::uintmax_t promotionPoint =
 				decimalPlaces == 0
 				? units.at(unitIndex + 1).divisor
 				: units.at(unitIndex).promotionPoint;
@@ -110,8 +110,8 @@ namespace space_fossils::core {
 			return std::to_string(fileSize) + " " + std::string(unitDef.suffix);
 		}
 
-		const std::uint64_t wholeNumberPart = fileSize / unitDef.divisor;
-		std::uint64_t remainderNumberPart = fileSize % unitDef.divisor;
+		const std::uintmax_t wholeNumberPart = fileSize / unitDef.divisor;
+		std::uintmax_t remainderNumberPart = fileSize % unitDef.divisor;
 
 		std::string result = std::to_string(wholeNumberPart);
 
@@ -119,9 +119,9 @@ namespace space_fossils::core {
 			result += ".";
 
 			for (std::size_t i = 0; i < decimalPlaces; ++i) {
-				remainderNumberPart *= std::uint64_t(10);
+				remainderNumberPart *= std::uintmax_t(10);
 
-				const std::uint64_t digit = remainderNumberPart / unitDef.divisor;
+				const std::uintmax_t digit = remainderNumberPart / unitDef.divisor;
 				result += std::to_string(digit);
 
 				remainderNumberPart %= unitDef.divisor;

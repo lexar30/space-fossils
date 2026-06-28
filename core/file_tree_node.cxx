@@ -4,7 +4,7 @@
 #include <utility>
 
 namespace space_fossils::core {
-	FileTreeNode::FileTreeNode(std::string name, FileTreeNodeType type, std::uint64_t size)
+	FileTreeNode::FileTreeNode(std::string name, FileTreeNodeType type, std::uintmax_t size)
 		: type(type)
 		, name(std::move(name))
 		, size(size)
@@ -20,7 +20,7 @@ namespace space_fossils::core {
 		return name;
 	}
 
-	std::uint64_t FileTreeNode::GetSize() const
+	std::uintmax_t FileTreeNode::GetSize() const
 	{
 		return size;
 	}
@@ -55,7 +55,7 @@ namespace space_fossils::core {
 		return childRef;
 	}
 
-	FileTreeNode& FileTreeNode::AddFile(std::string name, std::uint64_t size)
+	FileTreeNode& FileTreeNode::AddFile(std::string name, std::uintmax_t size)
 	{
 		assert(type == FileTreeNodeType::Directory);
 
@@ -83,7 +83,7 @@ namespace space_fossils::core {
 		return isDirty;
 	}
 
-	std::uint64_t FileTreeNode::RecalculateSizeRecursive()
+	std::uintmax_t FileTreeNode::RecalculateSizeRecursive()
 	{
 		if (!isDirty) {
 			return size;
@@ -94,7 +94,7 @@ namespace space_fossils::core {
 			return size;
 		}
 
-		std::uint64_t totalSize = 0;
+		std::uintmax_t totalSize = 0;
 
 		for (const auto& child : children) {
 			totalSize += child->RecalculateSizeRecursive();

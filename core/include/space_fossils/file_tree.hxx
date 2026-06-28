@@ -24,12 +24,12 @@ namespace space_fossils::core {
 		const FileTreeNode* GetRoot() const;
 		
 		bool IsEmpty() const;
-		std::uint64_t GetSize() const;
+		std::uintmax_t GetSize() const;
 
-		FileTreeNode& CreateRootFile(std::string name, std::uint64_t size);
+		FileTreeNode& CreateRootFile(std::string name, std::uintmax_t size);
 		FileTreeNode& CreateRootDirectory(std::string name);
 
-		std::uint64_t RecalculateSizeRecursive();
+		std::uintmax_t RecalculateSizeRecursive();
 
 		bool IsDirty() const;
 
