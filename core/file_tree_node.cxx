@@ -105,4 +105,42 @@ namespace space_fossils::core {
 
 		return size;
 	}
+
+	std::size_t FileTreeNode::GetChildCount() const
+	{
+		return children.size();
+	}
+
+	bool FileTreeNode::HasChildren() const
+	{
+		return !children.empty();
+	}
+
+
+	bool FileTreeNode::IsFile() const
+	{
+		return type == FileTreeNodeType::File;
+	}
+
+
+	bool FileTreeNode::IsDirectory() const
+	{
+		return type == FileTreeNodeType::Directory;
+	}
+
+
+	const FileTreeNode* FileTreeNode::GetChild(std::size_t index) const
+	{
+		if (index >= children.size()) {
+			return nullptr;
+		}
+
+		return children[index].get();
+	}
+
+
+
+
+
+
 }

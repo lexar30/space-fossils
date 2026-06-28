@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -41,6 +42,12 @@ namespace space_fossils::core {
 
 		std::uintmax_t RecalculateSizeRecursive();
 		bool IsDirty() const;
+
+		std::size_t GetChildCount() const;
+		bool HasChildren() const;
+		bool IsFile() const;
+		bool IsDirectory() const;
+		const FileTreeNode* GetChild(std::size_t index) const;
 
 	private:
 		void SetRecursiveDirty();

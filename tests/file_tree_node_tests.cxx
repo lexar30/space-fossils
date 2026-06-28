@@ -212,4 +212,57 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(subDirectory.IsDirty(), true);
 		SF_ASSERT_EQ(nestedDirectory.IsDirty(), true);
 	}
+
+	SF_TEST(file_tree_node, FileTreeNode_HasNoChildren)
+	{
+		using space_fossils::core::FileTreeNode;
+		using FileTreeNodeType = FileTreeNode::FileTreeNodeType;
+
+		FileTreeNode root("root", FileTreeNodeType::Directory, 0);
+
+		SF_ASSERT_EQ(root.HasChildren(), false);
+
+		FileTreeNode& subDirectory = root.AddDirectory("sub_directory");
+		FileTreeNode& nestedDirectory = subDirectory.AddDirectory("nested_directory");
+
+		SF_ASSERT_EQ(root.HasChildren(), true);
+	}
+
+	SF_TEST(file_tree_node, FileTreeNode_GetChildByValidIndex)
+	{
+		using space_fossils::core::FileTreeNode;
+		using FileTreeNodeType = FileTreeNode::FileTreeNodeType;
+
+		FileTreeNode root("root", FileTreeNodeType::Directory, 0);
+
+		SF_ASSERT_EQ(root.GetChildCount() == 0, true);
+
+		FileTreeNode& subDirectory = root.AddDirectory("sub_directory");
+		subDirectory.AddDirectory("nested_directory");
+
+		const FileTreeNode* child = root.GetChild(0);
+
+		SF_ASSERT_EQ(child != nullptr, true);
+		SF_ASSERT_EQ(child->GetName() == subDirectory.GetName(), true);
+		SF_ASSERT_EQ(child->IsDirectory(), true);
+		SF_ASSERT_EQ(child->IsFile(), false);
+		SF_ASSERT_EQ(root.GetChildCount() == 1, true);
+
+	}
+
+	SF_TEST(file_tree_node, FileTreeNode_GetChildByInvalidIndex_ReturnsNull)
+	{
+		using space_fossils::core::FileTreeNode;
+		using FileTreeNodeType = FileTreeNode::FileTreeNodeType;
+
+		FileTreeNode root("root", FileTreeNodeType::Directory, 0);
+
+		FileTreeNode& subDirectory = root.AddDirectory("sub_directory");
+		subDirectory.AddDirectory("nested_directory");
+
+		const FileTreeNode* child = root.GetChild(10);
+
+		SF_ASSERT_EQ(child == nullptr, true);
+	}
+
 }
