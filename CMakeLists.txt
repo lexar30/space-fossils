@@ -22,12 +22,14 @@ target_sources(space_fossils_core
 		core/file_tree.cxx
 		core/file_tree_node.cxx
 		core/file_scanner.cxx
+		core/file_tree_navigator.cxx
 		
 		core/include/space_fossils/core.hxx
 		core/include/space_fossils/size_formatter.hxx
 		core/include/space_fossils/file_tree.hxx
 		core/include/space_fossils/file_tree_node.hxx
 		core/include/space_fossils/file_scanner.hxx
+		core/include/space_fossils/file_tree_navigator.hxx
 )
 
 target_include_directories(space_fossils_core

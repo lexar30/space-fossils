@@ -130,4 +130,28 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(secondRoot.GetName(), "second_root.txt");
 		SF_ASSERT_EQ(secondRoot.GetParent(), nullptr);
 	}
+
+	SF_TEST(file_tree, StructureRevisionTests)
+	{
+		using space_fossils::core::FileTree;
+		using space_fossils::core::FileTreeNode;
+		using FileTreeNodeType = FileTreeNode::FileTreeNodeType;
+
+		FileTree fileTree;
+
+		const std::uint64_t firstRevision = fileTree.GetStructureRevision();
+
+		FileTreeNode& firstRoot = fileTree.CreateRootDirectory("first_root");
+		const std::uint64_t secondRevision = fileTree.GetStructureRevision();
+		SF_ASSERT_EQ(firstRevision < secondRevision, true);
+
+		FileTreeNode& secondRoot = fileTree.CreateRootFile("second_root.txt", 700);
+		const std::uint64_t thirdRevision = fileTree.GetStructureRevision();
+		SF_ASSERT_EQ(secondRevision < thirdRevision, true);
+
+		fileTree.Clear();
+		const std::uint64_t fourthRevision = fileTree.GetStructureRevision();
+		SF_ASSERT_EQ(thirdRevision < fourthRevision, true);
+		SF_ASSERT_EQ(fourthRevision == (thirdRevision + 1), true);
+	}
 }

@@ -1,6 +1,8 @@
 #include "space_fossils/file_tree_node.hxx"
 
+#include <algorithm>
 #include <cassert>
+#include <string_view>
 #include <utility>
 
 namespace space_fossils::core {
@@ -116,18 +118,15 @@ namespace space_fossils::core {
 		return !children.empty();
 	}
 
-
 	bool FileTreeNode::IsFile() const
 	{
 		return type == FileTreeNodeType::File;
 	}
 
-
 	bool FileTreeNode::IsDirectory() const
 	{
 		return type == FileTreeNodeType::Directory;
 	}
-
 
 	const FileTreeNode* FileTreeNode::GetChild(std::size_t index) const
 	{
@@ -138,9 +137,16 @@ namespace space_fossils::core {
 		return children[index].get();
 	}
 
+	const FileTreeNode* FileTreeNode::GetChild(std::string_view name) const
+	{
+		const auto& childIt = std::find_if(children.begin(), children.end(),
+			[&name](const auto& child)
+			{
+				return child->GetName() == name;
+			}
+		);
 
-
-
-
+		return childIt == children.end() ? nullptr : childIt->get();
+	}
 
 }

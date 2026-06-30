@@ -7,8 +7,28 @@ namespace space_fossils::core {
 
 	FileTree::FileTree() = default;
 	FileTree::~FileTree() = default;
-	FileTree::FileTree(FileTree&& other) noexcept = default;
-	FileTree& FileTree::operator=(FileTree&& other) noexcept = default;
+
+	FileTree::FileTree(FileTree&& other) noexcept
+	{
+		root = std::move(other.root);
+
+		IncrementStructureRevision();
+		other.IncrementStructureRevision();
+	}
+
+	FileTree& FileTree::operator=(FileTree&& other) noexcept
+	{
+		if (this == &other) {
+			return *this;
+		}
+
+		root = std::move(other.root);
+
+		IncrementStructureRevision();
+		other.IncrementStructureRevision();
+
+		return *this;
+	}
 
 	FileTreeNode* FileTree::GetRoot()
 	{
@@ -33,6 +53,8 @@ namespace space_fossils::core {
 	void FileTree::Clear()
 	{
 		root.reset();
+
+		IncrementStructureRevision();
 	}
 
 	std::uintmax_t FileTree::RecalculateSizeRecursive()
@@ -53,6 +75,8 @@ namespace space_fossils::core {
 			, size
 		);
 
+		IncrementStructureRevision();
+
 		return *root;
 	}
 
@@ -64,6 +88,18 @@ namespace space_fossils::core {
 			, 0
 		);
 
+		IncrementStructureRevision();
+
 		return *root;
+	}
+
+	std::uint64_t FileTree::GetStructureRevision() const
+	{
+		return structureRevision;
+	}
+
+	void FileTree::IncrementStructureRevision()
+	{
+		++structureRevision;
 	}
 }

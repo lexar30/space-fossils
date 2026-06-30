@@ -35,7 +35,15 @@ namespace space_fossils::core {
 
 		void Clear();
 
+		std::uint64_t GetStructureRevision() const;
+
+	private:
+		void IncrementStructureRevision();
+
 	private:
 		std::unique_ptr<FileTreeNode> root;
+
+		// Increment whenever an operation can invalidate existing FileTreeNode pointers
+		std::uint64_t structureRevision = 0;
 	};
 }

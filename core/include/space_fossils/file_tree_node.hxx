@@ -48,6 +48,7 @@ namespace space_fossils::core {
 		bool IsFile() const;
 		bool IsDirectory() const;
 		const FileTreeNode* GetChild(std::size_t index) const;
+		const FileTreeNode* GetChild(std::string_view name) const;
 
 	private:
 		void SetRecursiveDirty();
