@@ -1,12 +1,10 @@
 #pragma once
 
 #include "space_fossils/file_tree/name_pool.hxx"
-#include "space_fossils/file_tree/node.hxx"
 #include "space_fossils/file_tree/node_pool.hxx"
-#include "space_fossils/file_tree/types.hxx"
+#include "space_fossils/file_tree/storage_change.hxx"
 
 #include <cstddef>
-#include <memory>
 #include <optional>
 
 namespace space_fossils::core::file_tree {
@@ -14,39 +12,6 @@ namespace space_fossils::core::file_tree {
 	{
 		std::size_t nodeBlockSize = sizeof(Node) * 1024;
 		std::size_t nameBlockSize = sizeof(NativeChar) * 4096;
-	};
-
-	struct TreePoolBundle
-	{
-		std::unique_ptr<NamePool> namePool;
-		std::unique_ptr<NodePool> nodePool;
-		Node* root = nullptr;
-		std::size_t createdNodesCount = 0;
-	};
-
-	enum class IncomingChangeType
-	{
-		Unknown,
-		AdoptRoot,
-		Attach,
-		Replace,
-		Remove
-	};
-
-	struct IncomingChange
-	{
-		IncomingChangeType type = IncomingChangeType::Unknown;
-		Node* target = nullptr;
-		TreePoolBundle bundle;
-	};
-
-	struct AppliedChange
-	{
-		IncomingChangeType type = IncomingChangeType::Unknown;
-		Node* target = nullptr;
-		Node* addedRoot = nullptr;
-		std::size_t addedNodesCount = 0;
-		std::size_t removedNodesCount = 0;
 	};
 
 	class Storage

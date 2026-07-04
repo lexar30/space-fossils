@@ -21,18 +21,25 @@ target_sources(space_fossils_core
 		core/file_tree/name_pool.cxx
 		core/file_tree/node_pool.cxx
 		core/file_tree/storage.cxx
+		core/file_tree/scanner.cxx
+		core/file_tree/scan_sheduler.cxx
 		core/core.cxx
 		core/size_formatter.cxx
 
 		core/include/space_fossils/memory/memory_arena.hxx
 		core/include/space_fossils/file_tree/name_pool.hxx
 		core/include/space_fossils/file_tree/node_pool.hxx
+		core/include/space_fossils/file_tree/scan_request.hxx
+		core/include/space_fossils/file_tree/scan_job.hxx
 		core/include/space_fossils/file_tree/storage.hxx
+		core/include/space_fossils/file_tree/storage_change.hxx
+		core/include/space_fossils/file_tree/tree_pool_bundle.hxx
+		core/include/space_fossils/file_tree/scanner.hxx
+		core/include/space_fossils/file_tree/scan_sheduler.hxx
 		core/include/space_fossils/core.hxx
 		core/include/space_fossils/size_formatter.hxx
 		core/include/space_fossils/file_tree/types.hxx
 		core/include/space_fossils/file_tree/node.hxx
-		core/include/space_fossils/file_tree/scanner.hxx
 )
 
 target_include_directories(space_fossils_core

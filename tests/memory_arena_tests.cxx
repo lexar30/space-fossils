@@ -75,11 +75,19 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(arena.GetAllocatedBytes(), 32);
 		SF_ASSERT_EQ(arena.GetUsedSize(), 0);
 
-		void* allocation = arena.Allocate(8, 1);
+		void* firstReusedBlockAllocation = arena.Allocate(16, 1);
+		void* secondReusedBlockAllocation = arena.Allocate(16, 1);
 
-		SF_ASSERT_EQ(allocation != nullptr, true);
+		SF_ASSERT_EQ(firstReusedBlockAllocation != nullptr, true);
+		SF_ASSERT_EQ(secondReusedBlockAllocation != nullptr, true);
 		SF_ASSERT_EQ(arena.GetBlocksCount(), 2);
-		SF_ASSERT_EQ(arena.GetUsedSize(), 8);
+		SF_ASSERT_EQ(arena.GetUsedSize(), 32);
+
+		void* newBlockAllocation = arena.Allocate(1, 1);
+
+		SF_ASSERT_EQ(newBlockAllocation != nullptr, true);
+		SF_ASSERT_EQ(arena.GetBlocksCount(), 3);
+		SF_ASSERT_EQ(arena.GetUsedSize(), 33);
 	}
 
 	SF_TEST(memory_arena, ReleaseClearsBlocks)
@@ -134,5 +142,20 @@ namespace space_fossils::tests {
 
 		SF_ASSERT_EQ(allocation, nullptr);
 		SF_ASSERT_EQ(arena.GetBlocksCount(), 0);
+	}
+
+	SF_TEST(memory_arena, FailedLargeAllocationDoesNotAdvanceCurrentBlock)
+	{
+		MemoryArena arena(16);
+
+		void* firstAllocation = arena.Allocate(8, 1);
+		void* failedAllocation = arena.Allocate(std::numeric_limits<std::size_t>::max(), 2);
+		void* secondAllocation = arena.Allocate(8, 1);
+
+		SF_ASSERT_EQ(firstAllocation != nullptr, true);
+		SF_ASSERT_EQ(failedAllocation, nullptr);
+		SF_ASSERT_EQ(secondAllocation != nullptr, true);
+		SF_ASSERT_EQ(arena.GetBlocksCount(), 1);
+		SF_ASSERT_EQ(arena.GetUsedSize(), 16);
 	}
 }

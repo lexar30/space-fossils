@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstddef>
+#include <deque>
 #include <memory>
-#include <vector>
 
 namespace space_fossils::core::memory {
 	class MemoryArena
@@ -38,6 +38,7 @@ namespace space_fossils::core::memory {
 
 	private:
 		const std::size_t blockSize;
-		std::vector<MemoryBlock> blocks;
+		std::deque<MemoryBlock> blocks;
+		std::size_t currentBlockIndex = 0;
 	};
 }

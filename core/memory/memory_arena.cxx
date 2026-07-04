@@ -21,18 +21,15 @@ namespace space_fossils::core::memory {
 			return nullptr;
 		}
 
-		if (blocks.empty()) {
-			MemoryBlock* newBlock = TryCreateNewBlock(requiredSize, alignment);
-			if (newBlock == nullptr) {
-				return nullptr;
+		std::size_t candidateBlockIndex = currentBlockIndex;
+		while (candidateBlockIndex < blocks.size()) {
+			void* ptr = TryAllocateInBlock(blocks[candidateBlockIndex], requiredSize, alignment);
+			if (ptr != nullptr) {
+				currentBlockIndex = candidateBlockIndex;
+				return ptr;
 			}
 
-			return TryAllocateInBlock(*newBlock, requiredSize, alignment);
-		}
-
-		void* ptr = TryAllocateInBlock(blocks.back(), requiredSize, alignment);
-		if (ptr != nullptr) {
-			return ptr;
+			++candidateBlockIndex;
 		}
 
 		MemoryBlock* newBlock = TryCreateNewBlock(requiredSize, alignment);
@@ -40,6 +37,7 @@ namespace space_fossils::core::memory {
 			return nullptr;
 		}
 
+		currentBlockIndex = blocks.size() - 1;
 		return TryAllocateInBlock(*newBlock, requiredSize, alignment);
 	}
 
@@ -49,12 +47,12 @@ namespace space_fossils::core::memory {
 			return;
 		}
 
-		blocks.reserve(blocks.size() + other.blocks.size());
 		for (auto& blockIt : other.blocks) {
 			blocks.push_back(std::move(blockIt));
 		}
 
 		other.blocks.clear();
+		other.currentBlockIndex = 0;
 	}
 
 	void MemoryArena::Reset()
@@ -62,11 +60,14 @@ namespace space_fossils::core::memory {
 		for (auto& blockIt : blocks) {
 			blockIt.used = 0;
 		}
+
+		currentBlockIndex = 0;
 	}
 
 	void MemoryArena::Release()
 	{
 		blocks.clear();
+		currentBlockIndex = 0;
 	}
 
 	std::size_t MemoryArena::GetAllocatedBytes() const
