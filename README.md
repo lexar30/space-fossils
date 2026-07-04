@@ -18,7 +18,7 @@ Windows:
 * Visual Studio 2022
 * Git Bash / MSYS2 / WSL for shell scripts
 
-Linux/Debian:
+Linux/Debian (planned):
 
 * CMake 3.24+
 * Ninja
@@ -74,4 +74,3 @@ Generated build files are placed under:
 ```text
 builds/
 ```
-

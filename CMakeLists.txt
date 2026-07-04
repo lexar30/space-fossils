@@ -17,19 +17,22 @@ list(REMOVE_ITEM SPACE_FOSSILS_TEST_SOURCE_FILES
 
 target_sources(space_fossils_core
 	PRIVATE
+		core/memory/memory_arena.cxx
+		core/file_tree/name_pool.cxx
+		core/file_tree/node_pool.cxx
+		core/file_tree/storage.cxx
 		core/core.cxx
 		core/size_formatter.cxx
-		core/file_tree.cxx
-		core/file_tree_node.cxx
-		core/file_scanner.cxx
-		core/file_tree_navigator.cxx
-		
+
+		core/include/space_fossils/memory/memory_arena.hxx
+		core/include/space_fossils/file_tree/name_pool.hxx
+		core/include/space_fossils/file_tree/node_pool.hxx
+		core/include/space_fossils/file_tree/storage.hxx
 		core/include/space_fossils/core.hxx
 		core/include/space_fossils/size_formatter.hxx
-		core/include/space_fossils/file_tree.hxx
-		core/include/space_fossils/file_tree_node.hxx
-		core/include/space_fossils/file_scanner.hxx
-		core/include/space_fossils/file_tree_navigator.hxx
+		core/include/space_fossils/file_tree/types.hxx
+		core/include/space_fossils/file_tree/node.hxx
+		core/include/space_fossils/file_tree/scanner.hxx
 )
 
 target_include_directories(space_fossils_core
@@ -38,7 +41,7 @@ target_include_directories(space_fossils_core
 )
 
 target_compile_features(space_fossils_core
-	PUBLIC 
+	PUBLIC
 		cxx_std_20
 )
 
@@ -57,7 +60,7 @@ target_sources(space_fossils_tests
 		tests/main_tests.cxx
 		tests/tests.cxx
 		${SPACE_FOSSILS_TEST_SOURCE_FILES}
-		
+
 		tests/include/space_fossils_tests/micro_test_framework.hxx
 		tests/include/space_fossils_tests/tests.hxx
 )
