@@ -86,12 +86,24 @@ namespace space_fossils::core::file_tree {
 		switch (change.type) {
 		case IncomingChangeType::AdoptRoot:
 			return AdoptRoot(std::move(change.bundle));
-		case IncomingChangeType::Attach:
+
+		case IncomingChangeType::Attach: {
+			if (change.target == nullptr) {
+				return std::nullopt;
+			}
 			return AttachChild(change.target, std::move(change.bundle));
-		case IncomingChangeType::Replace:
+		}
+
+		case IncomingChangeType::Replace: {
+			if (change.target == nullptr) {
+				return std::nullopt;
+			}
 			return ReplaceSubtree(change.target, std::move(change.bundle));
+		}
+
 		case IncomingChangeType::Remove:
 			return RemoveSubtree(change.target);
+
 		default:
 			return std::nullopt;
 		}

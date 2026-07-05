@@ -205,6 +205,38 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(CountPendingDirectories(storage.GetRoot()) >= 1, true);
 	}
 
+	SF_TEST(file_tree_scan_coordinator, ProcessNextSkipsStaleRejectedJobAndContinues)
+	{
+		Storage storage;
+		ScanCoordinator coordinator = MakeCoordinator(storage);
+
+		coordinator.ScheduleRootScan(1);
+		std::optional<AppliedChange> rootChange = coordinator.ProcessNext();
+		SF_ASSERT_EQ(rootChange.has_value(), true);
+
+		Node& root = *storage.GetRoot();
+		Node* firstDirectory = RequireChild(root, "sub_directory_1");
+		Node* secondDirectory = RequireChild(root, "sub_directory_2");
+
+		IncomingChange removeChange;
+		removeChange.type = IncomingChangeType::Remove;
+		removeChange.target = firstDirectory;
+		std::optional<AppliedChange> removeResult = storage.ApplyChange(std::move(removeChange));
+		SF_ASSERT_EQ(removeResult.has_value(), true);
+		SF_ASSERT_EQ(storage.GetNodesCount(), 3);
+
+		std::optional<AppliedChange> appliedChange = coordinator.ProcessNext();
+
+		SF_ASSERT_EQ(appliedChange.has_value(), true);
+		SF_ASSERT_EQ(appliedChange->type, IncomingChangeType::Replace);
+		SF_ASSERT_EQ(appliedChange->target == secondDirectory, true);
+		SF_ASSERT_EQ(appliedChange->addedRoot != nullptr, true);
+		SF_ASSERT_EQ(appliedChange->removedNodesCount, 1);
+		SF_ASSERT_EQ(FindChild(*storage.GetRoot(), "sub_directory_1") == nullptr, true);
+		SF_ASSERT_EQ(FindChild(*storage.GetRoot(), "sub_directory_2") != nullptr, true);
+		SF_ASSERT_EQ(storage.GetNodesCount(), 4);
+	}
+
 	SF_TEST(file_tree_scan_coordinator, ProcessesPendingDirectoriesUntilQueueIsEmpty)
 	{
 		Storage storage;

@@ -54,29 +54,27 @@ namespace space_fossils::core::file_tree {
 
 	std::optional<AppliedChange> ScanCoordinator::ProcessNext()
 	{
-		if (!scheduler.HasJobs()) {
-			return std::nullopt;
+		while (scheduler.HasJobs()) {
+			auto job = scheduler.PopNext();
+			if (!job.has_value()) {
+				return std::nullopt;
+			}
+
+			TreePoolBundle bundle = scanner.Scan(job.value().request);
+
+			IncomingChange incomingChanges;
+			incomingChanges.bundle = std::move(bundle);
+			incomingChanges.target = job.value().target;
+			incomingChanges.type = job.value().applyAs;
+
+			const std::optional<AppliedChange> appliedChange = storage.ApplyChange(std::move(incomingChanges));
+			if (appliedChange.has_value()) {
+				UpdateScheduledTasks(appliedChange.value());
+				return appliedChange;
+			}
 		}
 
-		auto job = scheduler.PopNext();
-		if (!job.has_value())
-		{
-			return std::nullopt;
-		}
-
-		TreePoolBundle bundle = scanner.Scan(job.value().request);
-
-		IncomingChange incomingChanges;
-		incomingChanges.bundle = std::move(bundle);
-		incomingChanges.target = job.value().target;
-		incomingChanges.type = job.value().applyAs;
-
-		const std::optional<AppliedChange> appliedChange = storage.ApplyChange(std::move(incomingChanges));
-		if (appliedChange.has_value()) {
-			UpdateScheduledTasks(appliedChange.value());
-		}
-
-		return appliedChange;
+		return std::nullopt;
 	}
 
 	void ScanCoordinator::SchedulePending(Node* node, const std::filesystem::path& path)

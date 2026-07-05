@@ -7,6 +7,9 @@
 #include <cstddef>
 #include <optional>
 
+// Stale, detached, or foreign targets are rejected with std::nullopt.
+// Rejected changes must not mutate storage.
+
 namespace space_fossils::core::file_tree {
 	struct StorageConfig
 	{

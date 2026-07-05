@@ -2,7 +2,9 @@
 #include "space_fossils_tests/micro_test_framework.hxx"
 
 #include <cstddef>
+#include <fstream>
 #include <filesystem>
+#include <system_error>
 
 namespace space_fossils::tests {
 	namespace {
@@ -156,6 +158,47 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(bundle.nodePool != nullptr, true);
 		SF_ASSERT_EQ(bundle.root == nullptr, true);
 		SF_ASSERT_EQ(bundle.createdNodesCount, 0);
+	}
+
+	SF_TEST(file_tree_scanner, SymlinkIsLeafAndDoesNotTraverseTarget)
+	{
+		const std::filesystem::path testRoot = std::filesystem::current_path() / "space_fossils_scanner_symlink_test";
+		const std::filesystem::path targetDirectory = testRoot / "target";
+		const std::filesystem::path linkPath = testRoot / "link";
+
+		std::error_code ec;
+		std::filesystem::remove_all(testRoot, ec);
+		ec.clear();
+
+		std::filesystem::create_directories(targetDirectory, ec);
+		SF_ASSERT_EQ(bool(ec), false);
+
+		std::ofstream nestedFile(targetDirectory / "inside.txt");
+		SF_ASSERT_EQ(nestedFile.is_open(), true);
+		nestedFile << "inside";
+		nestedFile.close();
+
+		std::filesystem::create_directory_symlink(targetDirectory, linkPath, ec);
+		if (ec) {
+			std::filesystem::remove_all(testRoot, ec);
+			return;
+		}
+
+		Scanner scanner;
+		ScanRequest request;
+		request.path = linkPath;
+		request.maxDepth = 3;
+
+		TreePoolBundle bundle = scanner.Scan(request);
+
+		AssertSingleRootBundle(bundle);
+		AssertNameEquals(*bundle.root, "link");
+		SF_ASSERT_EQ(bundle.root->entryType, EntryType::Symlink);
+		SF_ASSERT_EQ(bundle.root->entryStatus, EntryStatus::Accessible);
+		SF_ASSERT_EQ(bundle.root->scanStatus, EntryScanStatus::Complete);
+		SF_ASSERT_EQ(bundle.root->firstChild == nullptr, true);
+
+		std::filesystem::remove_all(testRoot, ec);
 	}
 
 	SF_TEST(file_tree_scanner, MaxDepthZeroLeavesDirectoryPendingWithoutChildren)

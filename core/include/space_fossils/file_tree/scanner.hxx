@@ -5,6 +5,10 @@
 
 #include <filesystem>
 
+// Symlinks/junctions are represented as leaf nodes and are not traversed.
+// Directories stopped by maxDepth become Pending.
+// Inaccessible entries remain visible with AccessDenied and non-complete scan status.
+
 namespace space_fossils::core::file_tree {
 	struct ScannerConfig
 	{

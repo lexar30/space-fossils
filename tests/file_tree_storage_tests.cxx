@@ -309,6 +309,40 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(storage.GetNodesCount(), 0);
 	}
 
+	SF_TEST(file_tree_storage, AdoptRootRejectsCheapInvalidBundles)
+	{
+		Storage storage(MakeConfig());
+		NativeString rootName = MakeNativeString("root");
+
+		TreePoolBundle bundleWithoutNamePool = MakeSubtree(rootName);
+		bundleWithoutNamePool.namePool.reset();
+		std::optional<AppliedChange> missingNamePoolChange = TryAdoptRoot(storage, std::move(bundleWithoutNamePool));
+		SF_ASSERT_EQ(missingNamePoolChange.has_value(), false);
+		SF_ASSERT_EQ(storage.GetRoot() == nullptr, true);
+		SF_ASSERT_EQ(storage.GetNodesCount(), 0);
+
+		TreePoolBundle bundleWithoutNodePool = MakeSubtree(rootName);
+		bundleWithoutNodePool.nodePool.reset();
+		std::optional<AppliedChange> missingNodePoolChange = TryAdoptRoot(storage, std::move(bundleWithoutNodePool));
+		SF_ASSERT_EQ(missingNodePoolChange.has_value(), false);
+		SF_ASSERT_EQ(storage.GetRoot() == nullptr, true);
+		SF_ASSERT_EQ(storage.GetNodesCount(), 0);
+
+		TreePoolBundle rootlessBundle = MakeBundle();
+		rootlessBundle.createdNodesCount = 1;
+		std::optional<AppliedChange> missingRootChange = TryAdoptRoot(storage, std::move(rootlessBundle));
+		SF_ASSERT_EQ(missingRootChange.has_value(), false);
+		SF_ASSERT_EQ(storage.GetRoot() == nullptr, true);
+		SF_ASSERT_EQ(storage.GetNodesCount(), 0);
+
+		TreePoolBundle zeroCountBundle = MakeSubtree(rootName);
+		zeroCountBundle.createdNodesCount = 0;
+		std::optional<AppliedChange> zeroCountChange = TryAdoptRoot(storage, std::move(zeroCountBundle));
+		SF_ASSERT_EQ(zeroCountChange.has_value(), false);
+		SF_ASSERT_EQ(storage.GetRoot() == nullptr, true);
+		SF_ASSERT_EQ(storage.GetNodesCount(), 0);
+	}
+
 	SF_TEST(file_tree_storage, AttachChildLinksBundleRootToParent)
 	{
 		Storage storage(MakeConfig());
