@@ -1,5 +1,7 @@
 #include "space_fossils/file_tree/node_pool.hxx"
 
+#include "space_fossils/file_tree/node.hxx"
+
 #include <algorithm>
 #include <memory>
 #include <utility>

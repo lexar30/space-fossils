@@ -1,17 +1,17 @@
 #pragma once
 
-#include <space_fossils/file_tree/scan_job.hxx>
 #include <space_fossils/file_tree/scan_scheduler.hxx>
 #include <space_fossils/file_tree/scanner.hxx>
-#include <space_fossils/file_tree/storage.hxx>
+#include <space_fossils/file_tree/storage_change.hxx>
 
 #include <cstddef>
 #include <filesystem>
 #include <limits>
-#include <memory>
 #include <optional>
 
 namespace space_fossils::core::file_tree {
+	class Storage;
+
 	struct ScanCoordinatorConfig
 	{
 		std::filesystem::path rootPath;
@@ -29,6 +29,7 @@ namespace space_fossils::core::file_tree {
 	private:
 		void UpdateScheduledTasks(const AppliedChange& changes);
 		void SchedulePending(Node* node, const std::filesystem::path& path);
+		std::filesystem::path BuildPath(const Node* node) const;
 
 	private:
 		Storage& storage;

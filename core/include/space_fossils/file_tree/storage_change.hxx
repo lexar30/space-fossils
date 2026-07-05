@@ -1,19 +1,12 @@
 #pragma once
 
-#include "space_fossils/file_tree/node.hxx"
+#include "space_fossils/file_tree/change_type.hxx"
 #include "space_fossils/file_tree/tree_pool_bundle.hxx"
 
 #include <cstddef>
 
 namespace space_fossils::core::file_tree {
-	enum class IncomingChangeType
-	{
-		Unknown,
-		AdoptRoot,
-		Attach,
-		Replace,
-		Remove
-	};
+	struct Node;
 
 	struct IncomingChange
 	{

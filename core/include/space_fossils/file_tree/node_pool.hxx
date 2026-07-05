@@ -1,12 +1,13 @@
 #pragma once
 
-#include "space_fossils/file_tree/node.hxx"
 #include "space_fossils/memory/memory_arena.hxx"
 
 #include <cstddef>
 #include <vector>
 
 namespace space_fossils::core::file_tree {
+	struct Node;
+
 	class NodePool
 	{
 	public:

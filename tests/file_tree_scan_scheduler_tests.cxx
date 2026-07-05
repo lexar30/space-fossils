@@ -1,3 +1,4 @@
+#include "space_fossils/file_tree/node.hxx"
 #include "space_fossils/file_tree/scan_scheduler.hxx"
 #include "space_fossils_tests/micro_test_framework.hxx"
 

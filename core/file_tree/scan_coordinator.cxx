@@ -1,40 +1,12 @@
 #include "space_fossils/file_tree/scan_coordinator.hxx"
 
+#include "space_fossils/file_tree/storage.hxx"
+
 #include <limits>
+#include <utility>
 #include <vector>
 
 namespace space_fossils::core::file_tree {
-	namespace {
-		inline std::filesystem::path BuildPath(const Node* node, const Node* rootNode, const std::filesystem::path& rootPath)
-		{
-			if (node == nullptr) {
-				return {};
-			}
-
-			if (rootNode == nullptr) {
-				return {};
-			}
-
-			if (node == rootNode) {
-				return rootPath;
-			}
-
-			const Node* currentNode = node;
-			std::vector<NativeStringView> pathParts;
-			while (currentNode != nullptr && currentNode != rootNode) {
-				pathParts.push_back(ToStringView(currentNode->name));
-				currentNode = currentNode->parent;
-			}
-
-			std::filesystem::path path = rootPath;
-			for (auto it = pathParts.rbegin(); it != pathParts.rend(); ++it) {
-				path /= std::filesystem::path(*it);
-			}
-
-			return path;
-		}
-	}
-
 	ScanCoordinator::ScanCoordinator(Storage& storage, ScanCoordinatorConfig config)
 		: storage(storage)
 		, config(config)
@@ -114,6 +86,40 @@ namespace space_fossils::core::file_tree {
 			return;
 		}
 
-		SchedulePending(changes.addedRoot, BuildPath(changes.addedRoot, storage.GetRoot(), config.rootPath));
+		SchedulePending(changes.addedRoot, BuildPath(changes.addedRoot));
+	}
+
+	std::filesystem::path ScanCoordinator::BuildPath(const Node* node) const
+	{
+		if (node == nullptr) {
+			return {};
+		}
+
+		const Node* rootNode = storage.GetRoot();
+		if (rootNode == nullptr) {
+			return {};
+		}
+
+		if (node == rootNode) {
+			return config.rootPath;
+		}
+
+		const Node* currentNode = node;
+		std::vector<NativeStringView> pathParts;
+		while (currentNode != nullptr && currentNode != rootNode) {
+			pathParts.push_back(ToStringView(currentNode->name));
+			currentNode = currentNode->parent;
+		}
+
+		if (currentNode != rootNode) {
+			return {};
+		}
+
+		std::filesystem::path path = config.rootPath;
+		for (auto it = pathParts.rbegin(); it != pathParts.rend(); ++it) {
+			path /= std::filesystem::path(*it);
+		}
+
+		return path;
 	}
 }

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <space_fossils/file_tree/scan_job.hxx>
-#include <space_fossils/file_tree/tree_pool_bundle.hxx>
 
 #include <deque>
 #include <optional>

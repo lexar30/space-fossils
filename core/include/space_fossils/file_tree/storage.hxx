@@ -41,6 +41,14 @@ namespace space_fossils::core::file_tree {
 		std::optional<AppliedChange> ReplaceSubtree(Node* target, TreePoolBundle&& subtree);
 		std::optional<AppliedChange> RemoveSubtree(Node* node);
 
+		static bool IsValidBundle(const TreePoolBundle& subtree);
+		static void MergeBundlePools(NamePool& targetNamePool, NodePool& targetNodePool, TreePoolBundle& subtree);
+		static std::size_t CountSubtreeNodes(const Node* node);
+		static bool ContainsNode(const Node* current, const Node* target);
+		static bool FindDirectChild(Node* parent, Node* child, Node*& previous);
+		static EntryScanStatus ResolveDirectoryScanStatus(const Node& node);
+		static void RefreshAncestorScanStatuses(Node* node);
+
 	private:
 		const StorageConfig config;
 		NamePool namePool;

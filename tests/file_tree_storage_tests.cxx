@@ -491,6 +491,37 @@ namespace space_fossils::tests {
 		AssertNameEquals(*newRoot, newRootName);
 	}
 
+	SF_TEST(file_tree_storage, ReplaceSubtreeRefreshesAncestorScanStatus)
+	{
+		Storage storage(MakeConfig());
+		NativeString rootName = MakeNativeString("root");
+		NativeString childName = MakeNativeString("child");
+
+		TreePoolBundle rootBundle = MakeSubtree(rootName);
+		rootBundle.root->entryType = EntryType::Directory;
+		rootBundle.root->entryStatus = EntryStatus::Accessible;
+		rootBundle.root->scanStatus = EntryScanStatus::Partial;
+
+		Node* bundleChild = AppendBundleChild(rootBundle, rootBundle.root, childName);
+		bundleChild->entryType = EntryType::Directory;
+		bundleChild->entryStatus = EntryStatus::Accessible;
+		bundleChild->scanStatus = EntryScanStatus::Pending;
+
+		Node* root = ApplyAdoptRoot(storage, std::move(rootBundle));
+		Node* oldChild = root->firstChild;
+
+		TreePoolBundle replacementBundle = MakeSubtree(childName);
+		replacementBundle.root->entryType = EntryType::Directory;
+		replacementBundle.root->entryStatus = EntryStatus::Accessible;
+		replacementBundle.root->scanStatus = EntryScanStatus::Complete;
+
+		Node* replacement = ApplyReplaceSubtree(storage, oldChild, std::move(replacementBundle));
+
+		SF_ASSERT_EQ(replacement->scanStatus, EntryScanStatus::Complete);
+		SF_ASSERT_EQ(root->scanStatus, EntryScanStatus::Complete);
+		SF_ASSERT_EQ(storage.GetNodesCount(), 2);
+	}
+
 	SF_TEST(file_tree_storage, ReplaceSubtreeRejectsNullTarget)
 	{
 		Storage storage(MakeConfig());

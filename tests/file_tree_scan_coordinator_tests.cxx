@@ -1,4 +1,5 @@
 #include "space_fossils/file_tree/scan_coordinator.hxx"
+#include "space_fossils/file_tree/storage.hxx"
 #include "space_fossils_tests/micro_test_framework.hxx"
 
 #include <cstddef>
@@ -260,8 +261,9 @@ namespace space_fossils::tests {
 		Node* secondDirectory = RequireChild(root, "sub_directory_2");
 		Node* nestedDirectory = RequireChild(*secondDirectory, "sub_directory_3");
 
+		SF_ASSERT_EQ(root.scanStatus, EntryScanStatus::Complete);
 		SF_ASSERT_EQ(firstDirectory->scanStatus, EntryScanStatus::Complete);
-		SF_ASSERT_EQ(secondDirectory->scanStatus, EntryScanStatus::Partial);
+		SF_ASSERT_EQ(secondDirectory->scanStatus, EntryScanStatus::Complete);
 		SF_ASSERT_EQ(nestedDirectory->scanStatus, EntryScanStatus::Complete);
 		SF_ASSERT_EQ(CountChildren(*firstDirectory), 2);
 		SF_ASSERT_EQ(CountChildren(*secondDirectory), 1);
@@ -284,6 +286,7 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(processedFollowUpJobs, 2);
 		SF_ASSERT_EQ(storage.GetNodesCount(), 8);
 		SF_ASSERT_EQ(CountPendingDirectories(storage.GetRoot()), 0);
+		SF_ASSERT_EQ(storage.GetRoot()->scanStatus, EntryScanStatus::Complete);
 	}
 
 	SF_TEST(file_tree_scan_coordinator, MissingRootPathDoesNotScheduleFollowUpJobs)

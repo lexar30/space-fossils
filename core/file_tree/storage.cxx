@@ -4,73 +4,111 @@
 #include <utility>
 
 namespace space_fossils::core::file_tree {
-	namespace {
-		bool IsValidBundle(const TreePoolBundle& subtree)
-		{
-			return subtree.namePool != nullptr
-				&& subtree.nodePool != nullptr
-				&& subtree.root != nullptr
-				&& subtree.createdNodesCount > 0;
+	bool Storage::IsValidBundle(const TreePoolBundle& subtree)
+	{
+		return subtree.namePool != nullptr
+			&& subtree.nodePool != nullptr
+			&& subtree.root != nullptr
+			&& subtree.createdNodesCount > 0;
+	}
+
+	void Storage::MergeBundlePools(NamePool& targetNamePool, NodePool& targetNodePool, TreePoolBundle& subtree)
+	{
+		targetNamePool.MergeFrom(std::move(*subtree.namePool));
+		targetNodePool.MergeFrom(std::move(*subtree.nodePool));
+	}
+
+	std::size_t Storage::CountSubtreeNodes(const Node* node)
+	{
+		if (node == nullptr) {
+			return 0;
 		}
 
-		void MergeBundlePools(NamePool& targetNamePool, NodePool& targetNodePool, TreePoolBundle& subtree)
-		{
-			targetNamePool.MergeFrom(std::move(*subtree.namePool));
-			targetNodePool.MergeFrom(std::move(*subtree.nodePool));
+		std::size_t count = 1;
+		const Node* child = node->firstChild;
+		while (child != nullptr) {
+			count += CountSubtreeNodes(child);
+			child = child->nextSibling;
 		}
 
-		std::size_t CountSubtreeNodes(const Node* node)
-		{
-			if (node == nullptr) {
-				return 0;
+		return count;
+	}
+
+	bool Storage::ContainsNode(const Node* current, const Node* target)
+	{
+		while (current != nullptr) {
+			if (current == target) {
+				return true;
 			}
 
-			std::size_t count = 1;
-			const Node* child = node->firstChild;
-			while (child != nullptr) {
-				count += CountSubtreeNodes(child);
-				child = child->nextSibling;
+			if (ContainsNode(current->firstChild, target)) {
+				return true;
 			}
 
-			return count;
+			current = current->nextSibling;
 		}
 
-		bool ContainsNode(const Node* current, const Node* target)
-		{
-			while (current != nullptr) {
-				if (current == target) {
-					return true;
-				}
+		return false;
+	}
 
-				if (ContainsNode(current->firstChild, target)) {
-					return true;
-				}
-
-				current = current->nextSibling;
-			}
-
+	bool Storage::FindDirectChild(Node* parent, Node* child, Node*& previous)
+	{
+		previous = nullptr;
+		if (parent == nullptr || child == nullptr) {
 			return false;
 		}
 
-		bool FindDirectChild(Node* parent, Node* child, Node*& previous)
-		{
-			previous = nullptr;
-			if (parent == nullptr || child == nullptr) {
-				return false;
+		Node* current = parent->firstChild;
+		while (current != nullptr) {
+			if (current == child) {
+				return true;
 			}
 
-			Node* current = parent->firstChild;
-			while (current != nullptr) {
-				if (current == child) {
-					return true;
-				}
+			previous = current;
+			current = current->nextSibling;
+		}
 
-				previous = current;
-				current = current->nextSibling;
+		previous = nullptr;
+		return false;
+	}
+
+	EntryScanStatus Storage::ResolveDirectoryScanStatus(const Node& node)
+	{
+		if (node.entryType != EntryType::Directory) {
+			return node.scanStatus;
+		}
+
+		if (node.scanStatus == EntryScanStatus::Pending) {
+			return EntryScanStatus::Pending;
+		}
+
+		if (node.entryStatus == EntryStatus::AccessDenied) {
+			return EntryScanStatus::Partial;
+		}
+
+		if (node.entryStatus == EntryStatus::NotFound) {
+			return EntryScanStatus::Error;
+		}
+
+		if (node.entryStatus != EntryStatus::Accessible) {
+			return node.scanStatus;
+		}
+
+		for (const Node* child = node.firstChild; child != nullptr; child = child->nextSibling) {
+			if (child->scanStatus != EntryScanStatus::Complete) {
+				return EntryScanStatus::Partial;
 			}
+		}
 
-			previous = nullptr;
-			return false;
+		return EntryScanStatus::Complete;
+	}
+
+	void Storage::RefreshAncestorScanStatuses(Node* node)
+	{
+		for (Node* current = node; current != nullptr; current = current->parent) {
+			if (current->entryType == EntryType::Directory) {
+				current->scanStatus = ResolveDirectoryScanStatus(*current);
+			}
 		}
 	}
 
@@ -164,6 +202,7 @@ namespace space_fossils::core::file_tree {
 		}
 
 		nodesCount += addedNodesCount;
+		RefreshAncestorScanStatuses(parent);
 
 		return AppliedChange{
 			IncomingChangeType::Attach,
@@ -214,6 +253,7 @@ namespace space_fossils::core::file_tree {
 		target->nextSibling = nullptr;
 
 		nodesCount = nodesCount - removedNodesCount + addedNodesCount;
+		RefreshAncestorScanStatuses(replacement->parent);
 
 		return AppliedChange{
 			IncomingChangeType::Replace,

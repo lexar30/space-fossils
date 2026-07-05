@@ -1,5 +1,7 @@
 #include "space_fossils/file_tree/scan_scheduler.hxx"
 
+#include <utility>
+
 namespace space_fossils::core::file_tree {
 	void ScanScheduler::Schedule(ScanJob scanJob)
 	{
