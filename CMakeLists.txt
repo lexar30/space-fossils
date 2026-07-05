@@ -24,7 +24,7 @@ target_sources(space_fossils_core
 		core/file_tree/scanner.cxx
 		core/file_tree/scan_scheduler.cxx
 		core/file_tree/scan_coordinator.cxx
-		core/core.cxx
+		core/file_tree/text_report_writer.cxx
 		core/size_formatter.cxx
 
 		core/include/space_fossils/memory/memory_arena.hxx
@@ -39,6 +39,7 @@ target_sources(space_fossils_core
 		core/include/space_fossils/file_tree/scanner.hxx
 		core/include/space_fossils/file_tree/scan_scheduler.hxx
 		core/include/space_fossils/file_tree/scan_coordinator.hxx
+		core/include/space_fossils/file_tree/text_report_writer.hxx
 		core/include/space_fossils/core.hxx
 		core/include/space_fossils/size_formatter.hxx
 		core/include/space_fossils/file_tree/types.hxx
@@ -57,6 +58,8 @@ target_compile_features(space_fossils_core
 
 target_sources(space_fossils_app
 	PRIVATE
+		app/cli.cxx
+		app/cli.hxx
 		app/main.cxx
 )
 
