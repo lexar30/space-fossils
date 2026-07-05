@@ -139,6 +139,25 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(bundle.root->scanStatus, EntryScanStatus::Complete);
 	}
 
+	SF_TEST(file_tree_scanner, ZeroBlockSizeReturnsEmptyBundle)
+	{
+		ScannerConfig config;
+		config.nameBlockSize = 0;
+		config.nodeBlockSize = 0;
+		Scanner scanner(config);
+
+		ScanRequest request;
+		request.path = std::filesystem::path(SPACE_FOSSILS_FILE_SCANNER_FIXTURE_ROOT);
+		request.maxDepth = 1;
+
+		TreePoolBundle bundle = scanner.Scan(request);
+
+		SF_ASSERT_EQ(bundle.namePool != nullptr, true);
+		SF_ASSERT_EQ(bundle.nodePool != nullptr, true);
+		SF_ASSERT_EQ(bundle.root == nullptr, true);
+		SF_ASSERT_EQ(bundle.createdNodesCount, 0);
+	}
+
 	SF_TEST(file_tree_scanner, MaxDepthZeroLeavesDirectoryPendingWithoutChildren)
 	{
 		TreePoolBundle bundle = ScanPath(SPACE_FOSSILS_FILE_SCANNER_FIXTURE_ROOT, 0);
@@ -179,6 +198,45 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(secondDirectory->entryStatus, EntryStatus::Accessible);
 		SF_ASSERT_EQ(secondDirectory->scanStatus, EntryScanStatus::Pending);
 		SF_ASSERT_EQ(secondDirectory->firstChild == nullptr, true);
+	}
+
+	SF_TEST(file_tree_scanner, MaxDepthTwoLeavesOnlyNestedDirectoryPending)
+	{
+		TreePoolBundle bundle = ScanPath(SPACE_FOSSILS_FILE_SCANNER_FIXTURE_ROOT, 2);
+		SF_ASSERT_EQ(bundle.root != nullptr, true);
+		Node& root = *bundle.root;
+
+		SF_ASSERT_EQ(bundle.createdNodesCount, 7);
+		SF_ASSERT_EQ(root.entryType, EntryType::Directory);
+		SF_ASSERT_EQ(root.entryStatus, EntryStatus::Accessible);
+		SF_ASSERT_EQ(root.scanStatus, EntryScanStatus::Partial);
+		SF_ASSERT_EQ(CountChildren(root), 3);
+
+		Node* firstDirectory = RequireChild(root, "sub_directory_1");
+		SF_ASSERT_EQ(firstDirectory->entryType, EntryType::Directory);
+		SF_ASSERT_EQ(firstDirectory->entryStatus, EntryStatus::Accessible);
+		SF_ASSERT_EQ(firstDirectory->scanStatus, EntryScanStatus::Complete);
+		SF_ASSERT_EQ(CountChildren(*firstDirectory), 2);
+
+		Node* firstFile = RequireChild(*firstDirectory, "test_name_2.txt");
+		SF_ASSERT_EQ(firstFile->entryType, EntryType::File);
+		SF_ASSERT_EQ(firstFile->scanStatus, EntryScanStatus::Complete);
+
+		Node* secondFile = RequireChild(*firstDirectory, "test_name_3.txt");
+		SF_ASSERT_EQ(secondFile->entryType, EntryType::File);
+		SF_ASSERT_EQ(secondFile->scanStatus, EntryScanStatus::Complete);
+
+		Node* secondDirectory = RequireChild(root, "sub_directory_2");
+		SF_ASSERT_EQ(secondDirectory->entryType, EntryType::Directory);
+		SF_ASSERT_EQ(secondDirectory->entryStatus, EntryStatus::Accessible);
+		SF_ASSERT_EQ(secondDirectory->scanStatus, EntryScanStatus::Partial);
+		SF_ASSERT_EQ(CountChildren(*secondDirectory), 1);
+
+		Node* nestedDirectory = RequireChild(*secondDirectory, "sub_directory_3");
+		SF_ASSERT_EQ(nestedDirectory->entryType, EntryType::Directory);
+		SF_ASSERT_EQ(nestedDirectory->entryStatus, EntryStatus::Accessible);
+		SF_ASSERT_EQ(nestedDirectory->scanStatus, EntryScanStatus::Pending);
+		SF_ASSERT_EQ(nestedDirectory->firstChild == nullptr, true);
 	}
 
 	SF_TEST(file_tree_scanner, MaxDepthThreeScansWholeFixtureTree)

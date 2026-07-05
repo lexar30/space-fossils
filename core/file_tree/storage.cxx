@@ -116,7 +116,7 @@ namespace space_fossils::core::file_tree {
 		root = newRoot;
 		nodesCount = addedNodesCount;
 
-		return AppliedChange {
+		return AppliedChange{
 			IncomingChangeType::AdoptRoot,
 			oldRoot,
 			newRoot,
@@ -153,7 +153,7 @@ namespace space_fossils::core::file_tree {
 
 		nodesCount += addedNodesCount;
 
-		return AppliedChange {
+		return AppliedChange{
 			IncomingChangeType::Attach,
 			parent,
 			child,
@@ -203,7 +203,7 @@ namespace space_fossils::core::file_tree {
 
 		nodesCount = nodesCount - removedNodesCount + addedNodesCount;
 
-		return AppliedChange {
+		return AppliedChange{
 			IncomingChangeType::Replace,
 			target,
 			replacement,
@@ -241,7 +241,7 @@ namespace space_fossils::core::file_tree {
 		node->nextSibling = nullptr;
 		nodesCount -= removedNodesCount;
 
-		return AppliedChange {
+		return AppliedChange{
 			IncomingChangeType::Remove,
 			node,
 			nullptr,

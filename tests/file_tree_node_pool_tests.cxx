@@ -142,6 +142,33 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(target.GetLiveNodesCount(), 0);
 	}
 
+	SF_TEST(file_tree_node_pool, MergeFromAppendsLiveNodesToNonEmptyTarget)
+	{
+		NodePool target(sizeof(Node));
+		NodePool source(sizeof(Node));
+
+		Node* targetNode = target.Create();
+		Node* sourceNode = source.Create();
+		SF_ASSERT_EQ(targetNode != nullptr, true);
+		SF_ASSERT_EQ(sourceNode != nullptr, true);
+		targetNode->logicalSize = 11;
+		sourceNode->logicalSize = 22;
+
+		target.MergeFrom(std::move(source));
+
+		SF_ASSERT_EQ(target.GetLiveNodesCount(), 2);
+		SF_ASSERT_EQ(target.GetBlocksCount(), 2);
+		SF_ASSERT_EQ(source.GetLiveNodesCount(), 0);
+		SF_ASSERT_EQ(source.GetBlocksCount(), 0);
+		SF_ASSERT_EQ(source.GetUsedBytes(), 0);
+		SF_ASSERT_EQ(targetNode->logicalSize, 11);
+		SF_ASSERT_EQ(sourceNode->logicalSize, 22);
+		SF_ASSERT_EQ(source.Destroy(sourceNode), false);
+		SF_ASSERT_EQ(target.Destroy(targetNode), true);
+		SF_ASSERT_EQ(target.Destroy(sourceNode), true);
+		SF_ASSERT_EQ(target.GetLiveNodesCount(), 0);
+	}
+
 	SF_TEST(file_tree_node_pool, ZeroBlockSizeRejectsCreate)
 	{
 		NodePool pool(0);

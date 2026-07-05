@@ -22,7 +22,8 @@ target_sources(space_fossils_core
 		core/file_tree/node_pool.cxx
 		core/file_tree/storage.cxx
 		core/file_tree/scanner.cxx
-		core/file_tree/scan_sheduler.cxx
+		core/file_tree/scan_scheduler.cxx
+		core/file_tree/scan_coordinator.cxx
 		core/core.cxx
 		core/size_formatter.cxx
 
@@ -35,7 +36,8 @@ target_sources(space_fossils_core
 		core/include/space_fossils/file_tree/storage_change.hxx
 		core/include/space_fossils/file_tree/tree_pool_bundle.hxx
 		core/include/space_fossils/file_tree/scanner.hxx
-		core/include/space_fossils/file_tree/scan_sheduler.hxx
+		core/include/space_fossils/file_tree/scan_scheduler.hxx
+		core/include/space_fossils/file_tree/scan_coordinator.hxx
 		core/include/space_fossils/core.hxx
 		core/include/space_fossils/size_formatter.hxx
 		core/include/space_fossils/file_tree/types.hxx

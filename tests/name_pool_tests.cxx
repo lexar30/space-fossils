@@ -136,4 +136,26 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(ToStringView(ref)[0] == static_cast<NativeChar>('m'), true);
 		SF_ASSERT_EQ(ToStringView(ref).size(), name.size());
 	}
+
+	SF_TEST(name_pool, MergeFromAppendsStoredNamesToNonEmptyTarget)
+	{
+		NamePool target(16);
+		NamePool source(16);
+		NativeString targetName = MakeNativeString("target");
+		NativeString sourceName = MakeNativeString("source");
+
+		NameRef targetRef = target.Store(targetName);
+		NameRef sourceRef = source.Store(sourceName);
+
+		target.MergeFrom(std::move(source));
+
+		SF_ASSERT_EQ(target.GetBlocksCount(), 2);
+		SF_ASSERT_EQ(source.GetBlocksCount(), 0);
+		SF_ASSERT_EQ(source.GetAllocatedBytes(), 0);
+		SF_ASSERT_EQ(source.GetUsedBytes(), 0);
+		SF_ASSERT_EQ(ToStringView(targetRef).size(), targetName.size());
+		SF_ASSERT_EQ(ToStringView(sourceRef).size(), sourceName.size());
+		SF_ASSERT_EQ(ToStringView(targetRef)[0] == static_cast<NativeChar>('t'), true);
+		SF_ASSERT_EQ(ToStringView(sourceRef)[0] == static_cast<NativeChar>('s'), true);
+	}
 }

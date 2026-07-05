@@ -214,6 +214,18 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(storage.GetNodesCount(), 0);
 	}
 
+	SF_TEST(file_tree_storage, ApplyChangeRejectsUnknownType)
+	{
+		Storage storage(MakeConfig());
+		IncomingChange change;
+
+		std::optional<AppliedChange> appliedChange = storage.ApplyChange(std::move(change));
+
+		SF_ASSERT_EQ(appliedChange.has_value(), false);
+		SF_ASSERT_EQ(storage.GetRoot() == nullptr, true);
+		SF_ASSERT_EQ(storage.GetNodesCount(), 0);
+	}
+
 	SF_TEST(file_tree_storage, AdoptRootMergesBundlePools)
 	{
 		Storage storage(MakeConfig());
@@ -384,6 +396,25 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(storage.GetNodesCount(), 1);
 	}
 
+	SF_TEST(file_tree_storage, AttachChildRejectsDetachedParent)
+	{
+		Storage storage(MakeConfig());
+		NativeString rootName = MakeNativeString("root");
+		NativeString detachedName = MakeNativeString("detached");
+		NativeString newChildName = MakeNativeString("new-child");
+
+		Node* root = ApplyAdoptRoot(storage, MakeSubtree(rootName));
+		Node* detached = ApplyAttachChild(storage, root, MakeSubtree(detachedName));
+		SF_ASSERT_EQ(ApplyRemoveSubtree(storage, detached), true);
+
+		std::optional<AppliedChange> appliedChange = TryAttachChild(storage, detached, MakeSubtree(newChildName));
+
+		SF_ASSERT_EQ(appliedChange.has_value(), false);
+		SF_ASSERT_EQ(storage.GetRoot() == root, true);
+		SF_ASSERT_EQ(root->firstChild == nullptr, true);
+		SF_ASSERT_EQ(storage.GetNodesCount(), 1);
+	}
+
 	SF_TEST(file_tree_storage, ReplaceSubtreeKeepsSiblingList)
 	{
 		Storage storage(MakeConfig());
@@ -436,6 +467,27 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(appliedChange.has_value(), false);
 		SF_ASSERT_EQ(storage.GetRoot() == nullptr, true);
 		SF_ASSERT_EQ(storage.GetNodesCount(), 0);
+	}
+
+	SF_TEST(file_tree_storage, ReplaceSubtreeRejectsDetachedTarget)
+	{
+		Storage storage(MakeConfig());
+		NativeString rootName = MakeNativeString("root");
+		NativeString oldName = MakeNativeString("old");
+		NativeString replacementName = MakeNativeString("replacement");
+		NativeString secondReplacementName = MakeNativeString("second-replacement");
+
+		Node* root = ApplyAdoptRoot(storage, MakeSubtree(rootName));
+		Node* old = ApplyAttachChild(storage, root, MakeSubtree(oldName));
+		Node* replacement = ApplyReplaceSubtree(storage, old, MakeSubtree(replacementName));
+
+		std::optional<AppliedChange> appliedChange = TryReplaceSubtree(storage, old, MakeSubtree(secondReplacementName));
+
+		SF_ASSERT_EQ(appliedChange.has_value(), false);
+		SF_ASSERT_EQ(storage.GetRoot() == root, true);
+		SF_ASSERT_EQ(root->firstChild == replacement, true);
+		SF_ASSERT_EQ(replacement->parent == root, true);
+		SF_ASSERT_EQ(storage.GetNodesCount(), 2);
 	}
 
 	SF_TEST(file_tree_storage, RemoveLeafDetachesItFromSiblingList)
@@ -510,6 +562,24 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(removed, false);
 		SF_ASSERT_EQ(storage.GetRoot() == nullptr, true);
 		SF_ASSERT_EQ(storage.GetNodesCount(), 0);
+	}
+
+	SF_TEST(file_tree_storage, RemoveSubtreeRejectsDetachedNode)
+	{
+		Storage storage(MakeConfig());
+		NativeString rootName = MakeNativeString("root");
+		NativeString childName = MakeNativeString("child");
+
+		Node* root = ApplyAdoptRoot(storage, MakeSubtree(rootName));
+		Node* child = ApplyAttachChild(storage, root, MakeSubtree(childName));
+		SF_ASSERT_EQ(ApplyRemoveSubtree(storage, child), true);
+
+		bool removedAgain = ApplyRemoveSubtree(storage, child);
+
+		SF_ASSERT_EQ(removedAgain, false);
+		SF_ASSERT_EQ(storage.GetRoot() == root, true);
+		SF_ASSERT_EQ(root->firstChild == nullptr, true);
+		SF_ASSERT_EQ(storage.GetNodesCount(), 1);
 	}
 
 	SF_TEST(file_tree_storage, ClearRemovesWholeTree)

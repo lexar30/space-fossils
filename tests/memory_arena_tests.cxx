@@ -124,6 +124,30 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(storedByte[0] == std::byte { 42 }, true);
 	}
 
+	SF_TEST(memory_arena, MergeFromAppendsBlocksToNonEmptyTarget)
+	{
+		MemoryArena target(8);
+		MemoryArena source(16);
+
+		std::byte* targetByte = static_cast<std::byte*>(target.Allocate(8, alignof(std::byte)));
+		std::byte* sourceByte = static_cast<std::byte*>(source.Allocate(4, alignof(std::byte)));
+		SF_ASSERT_EQ(targetByte != nullptr, true);
+		SF_ASSERT_EQ(sourceByte != nullptr, true);
+		targetByte[0] = std::byte { 11 };
+		sourceByte[0] = std::byte { 22 };
+
+		target.MergeFrom(std::move(source));
+
+		SF_ASSERT_EQ(target.GetBlocksCount(), 2);
+		SF_ASSERT_EQ(target.GetAllocatedBytes(), 24);
+		SF_ASSERT_EQ(target.GetUsedSize(), 12);
+		SF_ASSERT_EQ(source.GetBlocksCount(), 0);
+		SF_ASSERT_EQ(source.GetAllocatedBytes(), 0);
+		SF_ASSERT_EQ(source.GetUsedSize(), 0);
+		SF_ASSERT_EQ(targetByte[0] == std::byte { 11 }, true);
+		SF_ASSERT_EQ(sourceByte[0] == std::byte { 22 }, true);
+	}
+
 	SF_TEST(memory_arena, InvalidRequestsReturnNullWithoutAllocatingBlocks)
 	{
 		MemoryArena arena(64);
