@@ -47,7 +47,8 @@ namespace space_fossils::core::file_tree {
 		static bool ContainsNode(const Node* current, const Node* target);
 		static bool FindDirectChild(Node* parent, Node* child, Node*& previous);
 		static EntryScanStatus ResolveDirectoryScanStatus(const Node& node);
-		static void RefreshAncestorScanStatuses(Node* node);
+		static void ApplyLogicalSizeDelta(Node& node, FileSize removedSize, FileSize addedSize);
+		static void RefreshAncestorMetadata(Node* node, FileSize removedSize, FileSize addedSize);
 
 	private:
 		const StorageConfig config;

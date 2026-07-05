@@ -196,6 +196,22 @@ namespace space_fossils::tests {
 				SF_ASSERT_EQ(actualName[index] == expectedName[index], true);
 			}
 		}
+
+		void SetDirectory(Node& node, FileSize logicalSize, EntryScanStatus scanStatus = EntryScanStatus::Complete)
+		{
+			node.logicalSize = logicalSize;
+			node.entryType = EntryType::Directory;
+			node.entryStatus = EntryStatus::Accessible;
+			node.scanStatus = scanStatus;
+		}
+
+		void SetFile(Node& node, FileSize logicalSize)
+		{
+			node.logicalSize = logicalSize;
+			node.entryType = EntryType::File;
+			node.entryStatus = EntryStatus::Accessible;
+			node.scanStatus = EntryScanStatus::Complete;
+		}
 	}
 
 	SF_TEST(file_tree_storage, DefaultConfigStartsEmpty)
@@ -404,6 +420,36 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(storage.GetNodesCount(), 4);
 	}
 
+	SF_TEST(file_tree_storage, AttachChildAddsLogicalSizeToDirectoryAncestors)
+	{
+		Storage storage(MakeConfig());
+		NativeString rootName = MakeNativeString("root");
+		NativeString folderName = MakeNativeString("folder");
+		NativeString oldFileName = MakeNativeString("old.txt");
+		NativeString newFileName = MakeNativeString("new.txt");
+
+		TreePoolBundle rootBundle = MakeSubtree(rootName);
+		SetDirectory(*rootBundle.root, 10);
+
+		Node* bundleFolder = AppendBundleChild(rootBundle, rootBundle.root, folderName);
+		SetDirectory(*bundleFolder, 10);
+
+		Node* oldFile = AppendBundleChild(rootBundle, bundleFolder, oldFileName);
+		SetFile(*oldFile, 10);
+
+		Node* root = ApplyAdoptRoot(storage, std::move(rootBundle));
+		Node* folder = root->firstChild;
+
+		TreePoolBundle newFileBundle = MakeSubtree(newFileName);
+		SetFile(*newFileBundle.root, 7);
+
+		Node* newFile = ApplyAttachChild(storage, folder, std::move(newFileBundle));
+
+		SF_ASSERT_EQ(newFile->logicalSize, 7);
+		SF_ASSERT_EQ(folder->logicalSize, 17);
+		SF_ASSERT_EQ(root->logicalSize, 17);
+	}
+
 	SF_TEST(file_tree_storage, AttachChildRejectsNullParent)
 	{
 		Storage storage(MakeConfig());
@@ -520,6 +566,35 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(replacement->scanStatus, EntryScanStatus::Complete);
 		SF_ASSERT_EQ(root->scanStatus, EntryScanStatus::Complete);
 		SF_ASSERT_EQ(storage.GetNodesCount(), 2);
+	}
+
+	SF_TEST(file_tree_storage, ReplaceSubtreeAppliesLogicalSizeDeltaToDirectoryAncestors)
+	{
+		Storage storage(MakeConfig());
+		NativeString rootName = MakeNativeString("root");
+		NativeString oldName = MakeNativeString("old.bin");
+		NativeString siblingName = MakeNativeString("sibling.bin");
+		NativeString replacementName = MakeNativeString("replacement.bin");
+
+		TreePoolBundle rootBundle = MakeSubtree(rootName);
+		SetDirectory(*rootBundle.root, 25);
+
+		Node* oldChild = AppendBundleChild(rootBundle, rootBundle.root, oldName);
+		SetFile(*oldChild, 20);
+
+		Node* sibling = AppendBundleChild(rootBundle, rootBundle.root, siblingName);
+		SetFile(*sibling, 5);
+
+		Node* root = ApplyAdoptRoot(storage, std::move(rootBundle));
+		Node* old = root->firstChild;
+
+		TreePoolBundle replacementBundle = MakeSubtree(replacementName);
+		SetFile(*replacementBundle.root, 7);
+
+		Node* replacement = ApplyReplaceSubtree(storage, old, std::move(replacementBundle));
+
+		SF_ASSERT_EQ(replacement->logicalSize, 7);
+		SF_ASSERT_EQ(root->logicalSize, 12);
 	}
 
 	SF_TEST(file_tree_storage, ReplaceSubtreeRejectsNullTarget)
@@ -645,6 +720,28 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(storage.GetRoot() == root, true);
 		SF_ASSERT_EQ(root->firstChild == nullptr, true);
 		SF_ASSERT_EQ(storage.GetNodesCount(), 1);
+	}
+
+	SF_TEST(file_tree_storage, RemoveSubtreeSubtractsLogicalSizeAndRefreshesAncestorStatus)
+	{
+		Storage storage(MakeConfig());
+		NativeString rootName = MakeNativeString("root");
+		NativeString childName = MakeNativeString("pending");
+
+		TreePoolBundle rootBundle = MakeSubtree(rootName);
+		SetDirectory(*rootBundle.root, 30, EntryScanStatus::Partial);
+
+		Node* child = AppendBundleChild(rootBundle, rootBundle.root, childName);
+		SetDirectory(*child, 30, EntryScanStatus::Pending);
+
+		Node* root = ApplyAdoptRoot(storage, std::move(rootBundle));
+		Node* pendingChild = root->firstChild;
+
+		bool removed = ApplyRemoveSubtree(storage, pendingChild);
+
+		SF_ASSERT_EQ(removed, true);
+		SF_ASSERT_EQ(root->logicalSize, 0);
+		SF_ASSERT_EQ(root->scanStatus, EntryScanStatus::Complete);
 	}
 
 	SF_TEST(file_tree_storage, ClearRemovesWholeTree)

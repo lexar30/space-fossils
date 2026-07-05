@@ -10,6 +10,11 @@ namespace space_fossils::tests {
 	namespace {
 		using namespace space_fossils::core::file_tree;
 
+		constexpr FileSize FixtureRootFileSize = 100;
+		constexpr FileSize FixtureFirstDirectorySize = 300;
+		constexpr FileSize FixtureNestedDirectorySize = 200;
+		constexpr FileSize FixtureTotalSize = 600;
+
 		NativeString MakeNativeString(const char* value)
 		{
 			NativeString result;
@@ -128,6 +133,7 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(bundle.root->entryType, EntryType::Unknown);
 		SF_ASSERT_EQ(bundle.root->entryStatus, EntryStatus::NotFound);
 		SF_ASSERT_EQ(bundle.root->scanStatus, EntryScanStatus::Error);
+		SF_ASSERT_EQ(bundle.root->logicalSize, DefaultFileSize);
 	}
 
 	SF_TEST(file_tree_scanner, ScanEmptyDirectoryCreatesCompleteDirectoryRoot)
@@ -139,6 +145,7 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(bundle.root->entryType, EntryType::Directory);
 		SF_ASSERT_EQ(bundle.root->entryStatus, EntryStatus::Accessible);
 		SF_ASSERT_EQ(bundle.root->scanStatus, EntryScanStatus::Complete);
+		SF_ASSERT_EQ(bundle.root->logicalSize, DefaultFileSize);
 	}
 
 	SF_TEST(file_tree_scanner, ZeroBlockSizeReturnsEmptyBundle)
@@ -196,6 +203,7 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(bundle.root->entryType, EntryType::Symlink);
 		SF_ASSERT_EQ(bundle.root->entryStatus, EntryStatus::Accessible);
 		SF_ASSERT_EQ(bundle.root->scanStatus, EntryScanStatus::Complete);
+		SF_ASSERT_EQ(bundle.root->logicalSize, DefaultFileSize);
 		SF_ASSERT_EQ(bundle.root->firstChild == nullptr, true);
 
 		std::filesystem::remove_all(testRoot, ec);
@@ -210,6 +218,7 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(bundle.root->entryType, EntryType::Directory);
 		SF_ASSERT_EQ(bundle.root->entryStatus, EntryStatus::Accessible);
 		SF_ASSERT_EQ(bundle.root->scanStatus, EntryScanStatus::Pending);
+		SF_ASSERT_EQ(bundle.root->logicalSize, DefaultFileSize);
 	}
 
 	SF_TEST(file_tree_scanner, MaxDepthOneAddsDirectChildrenAndMarksNestedDirectoriesPending)
@@ -223,23 +232,27 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(root.entryType, EntryType::Directory);
 		SF_ASSERT_EQ(root.entryStatus, EntryStatus::Accessible);
 		SF_ASSERT_EQ(root.scanStatus, EntryScanStatus::Partial);
+		SF_ASSERT_EQ(root.logicalSize, FixtureRootFileSize);
 		SF_ASSERT_EQ(CountChildren(root), 3);
 
 		Node* file = RequireChild(root, "test_name_1.txt");
 		SF_ASSERT_EQ(file->entryType, EntryType::File);
 		SF_ASSERT_EQ(file->entryStatus, EntryStatus::Accessible);
 		SF_ASSERT_EQ(file->scanStatus, EntryScanStatus::Complete);
+		SF_ASSERT_EQ(file->logicalSize, FixtureRootFileSize);
 
 		Node* firstDirectory = RequireChild(root, "sub_directory_1");
 		SF_ASSERT_EQ(firstDirectory->entryType, EntryType::Directory);
 		SF_ASSERT_EQ(firstDirectory->entryStatus, EntryStatus::Accessible);
 		SF_ASSERT_EQ(firstDirectory->scanStatus, EntryScanStatus::Pending);
+		SF_ASSERT_EQ(firstDirectory->logicalSize, DefaultFileSize);
 		SF_ASSERT_EQ(firstDirectory->firstChild == nullptr, true);
 
 		Node* secondDirectory = RequireChild(root, "sub_directory_2");
 		SF_ASSERT_EQ(secondDirectory->entryType, EntryType::Directory);
 		SF_ASSERT_EQ(secondDirectory->entryStatus, EntryStatus::Accessible);
 		SF_ASSERT_EQ(secondDirectory->scanStatus, EntryScanStatus::Pending);
+		SF_ASSERT_EQ(secondDirectory->logicalSize, DefaultFileSize);
 		SF_ASSERT_EQ(secondDirectory->firstChild == nullptr, true);
 	}
 
@@ -253,32 +266,38 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(root.entryType, EntryType::Directory);
 		SF_ASSERT_EQ(root.entryStatus, EntryStatus::Accessible);
 		SF_ASSERT_EQ(root.scanStatus, EntryScanStatus::Partial);
+		SF_ASSERT_EQ(root.logicalSize, FixtureRootFileSize + FixtureFirstDirectorySize);
 		SF_ASSERT_EQ(CountChildren(root), 3);
 
 		Node* firstDirectory = RequireChild(root, "sub_directory_1");
 		SF_ASSERT_EQ(firstDirectory->entryType, EntryType::Directory);
 		SF_ASSERT_EQ(firstDirectory->entryStatus, EntryStatus::Accessible);
 		SF_ASSERT_EQ(firstDirectory->scanStatus, EntryScanStatus::Complete);
+		SF_ASSERT_EQ(firstDirectory->logicalSize, FixtureFirstDirectorySize);
 		SF_ASSERT_EQ(CountChildren(*firstDirectory), 2);
 
 		Node* firstFile = RequireChild(*firstDirectory, "test_name_2.txt");
 		SF_ASSERT_EQ(firstFile->entryType, EntryType::File);
 		SF_ASSERT_EQ(firstFile->scanStatus, EntryScanStatus::Complete);
+		SF_ASSERT_EQ(firstFile->logicalSize, 100);
 
 		Node* secondFile = RequireChild(*firstDirectory, "test_name_3.txt");
 		SF_ASSERT_EQ(secondFile->entryType, EntryType::File);
 		SF_ASSERT_EQ(secondFile->scanStatus, EntryScanStatus::Complete);
+		SF_ASSERT_EQ(secondFile->logicalSize, 200);
 
 		Node* secondDirectory = RequireChild(root, "sub_directory_2");
 		SF_ASSERT_EQ(secondDirectory->entryType, EntryType::Directory);
 		SF_ASSERT_EQ(secondDirectory->entryStatus, EntryStatus::Accessible);
 		SF_ASSERT_EQ(secondDirectory->scanStatus, EntryScanStatus::Partial);
+		SF_ASSERT_EQ(secondDirectory->logicalSize, DefaultFileSize);
 		SF_ASSERT_EQ(CountChildren(*secondDirectory), 1);
 
 		Node* nestedDirectory = RequireChild(*secondDirectory, "sub_directory_3");
 		SF_ASSERT_EQ(nestedDirectory->entryType, EntryType::Directory);
 		SF_ASSERT_EQ(nestedDirectory->entryStatus, EntryStatus::Accessible);
 		SF_ASSERT_EQ(nestedDirectory->scanStatus, EntryScanStatus::Pending);
+		SF_ASSERT_EQ(nestedDirectory->logicalSize, DefaultFileSize);
 		SF_ASSERT_EQ(nestedDirectory->firstChild == nullptr, true);
 	}
 
@@ -292,37 +311,45 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(root.entryType, EntryType::Directory);
 		SF_ASSERT_EQ(root.entryStatus, EntryStatus::Accessible);
 		SF_ASSERT_EQ(root.scanStatus, EntryScanStatus::Complete);
+		SF_ASSERT_EQ(root.logicalSize, FixtureTotalSize);
 		SF_ASSERT_EQ(CountChildren(root), 3);
 
 		Node* rootFile = RequireChild(root, "test_name_1.txt");
 		SF_ASSERT_EQ(rootFile->entryType, EntryType::File);
 		SF_ASSERT_EQ(rootFile->scanStatus, EntryScanStatus::Complete);
+		SF_ASSERT_EQ(rootFile->logicalSize, FixtureRootFileSize);
 
 		Node* firstDirectory = RequireChild(root, "sub_directory_1");
 		SF_ASSERT_EQ(firstDirectory->entryType, EntryType::Directory);
 		SF_ASSERT_EQ(firstDirectory->scanStatus, EntryScanStatus::Complete);
+		SF_ASSERT_EQ(firstDirectory->logicalSize, FixtureFirstDirectorySize);
 		SF_ASSERT_EQ(CountChildren(*firstDirectory), 2);
 
 		Node* firstFile = RequireChild(*firstDirectory, "test_name_2.txt");
 		SF_ASSERT_EQ(firstFile->entryType, EntryType::File);
 		SF_ASSERT_EQ(firstFile->scanStatus, EntryScanStatus::Complete);
+		SF_ASSERT_EQ(firstFile->logicalSize, 100);
 
 		Node* secondFile = RequireChild(*firstDirectory, "test_name_3.txt");
 		SF_ASSERT_EQ(secondFile->entryType, EntryType::File);
 		SF_ASSERT_EQ(secondFile->scanStatus, EntryScanStatus::Complete);
+		SF_ASSERT_EQ(secondFile->logicalSize, 200);
 
 		Node* secondDirectory = RequireChild(root, "sub_directory_2");
 		SF_ASSERT_EQ(secondDirectory->entryType, EntryType::Directory);
 		SF_ASSERT_EQ(secondDirectory->scanStatus, EntryScanStatus::Complete);
+		SF_ASSERT_EQ(secondDirectory->logicalSize, FixtureNestedDirectorySize);
 		SF_ASSERT_EQ(CountChildren(*secondDirectory), 1);
 
 		Node* nestedDirectory = RequireChild(*secondDirectory, "sub_directory_3");
 		SF_ASSERT_EQ(nestedDirectory->entryType, EntryType::Directory);
 		SF_ASSERT_EQ(nestedDirectory->scanStatus, EntryScanStatus::Complete);
+		SF_ASSERT_EQ(nestedDirectory->logicalSize, FixtureNestedDirectorySize);
 		SF_ASSERT_EQ(CountChildren(*nestedDirectory), 1);
 
 		Node* nestedFile = RequireChild(*nestedDirectory, "test_name_4.txt");
 		SF_ASSERT_EQ(nestedFile->entryType, EntryType::File);
 		SF_ASSERT_EQ(nestedFile->scanStatus, EntryScanStatus::Complete);
+		SF_ASSERT_EQ(nestedFile->logicalSize, FixtureNestedDirectorySize);
 	}
 }

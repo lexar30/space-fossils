@@ -106,6 +106,11 @@ namespace space_fossils::core::file_tree {
 
 			node->entryStatus = EntryStatus::Accessible;
 			node->scanStatus = EntryScanStatus::Complete;
+
+			for (Node* ancestor = parent; ancestor != nullptr; ancestor = ancestor->parent) {
+				ancestor->logicalSize += node->logicalSize;
+			}
+
 			return true;
 		}
 		else if (std::filesystem::is_directory(status)) {

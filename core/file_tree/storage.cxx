@@ -103,10 +103,31 @@ namespace space_fossils::core::file_tree {
 		return EntryScanStatus::Complete;
 	}
 
-	void Storage::RefreshAncestorScanStatuses(Node* node)
+	void Storage::ApplyLogicalSizeDelta(Node& node, FileSize removedSize, FileSize addedSize)
+	{
+		if (node.entryType != EntryType::Directory || removedSize == addedSize) {
+			return;
+		}
+
+		if (addedSize > removedSize) {
+			node.logicalSize += addedSize - removedSize;
+			return;
+		}
+
+		const FileSize sizeToRemove = removedSize - addedSize;
+		if (sizeToRemove > node.logicalSize) {
+			node.logicalSize = DefaultFileSize;
+			return;
+		}
+
+		node.logicalSize -= sizeToRemove;
+	}
+
+	void Storage::RefreshAncestorMetadata(Node* node, FileSize removedSize, FileSize addedSize)
 	{
 		for (Node* current = node; current != nullptr; current = current->parent) {
 			if (current->entryType == EntryType::Directory) {
+				ApplyLogicalSizeDelta(*current, removedSize, addedSize);
 				current->scanStatus = ResolveDirectoryScanStatus(*current);
 			}
 		}
@@ -183,6 +204,7 @@ namespace space_fossils::core::file_tree {
 
 		Node* child = subtree.root;
 		std::size_t addedNodesCount = subtree.createdNodesCount;
+		FileSize addedSize = child->logicalSize;
 
 		MergeBundlePools(namePool, nodePool, subtree);
 
@@ -202,7 +224,7 @@ namespace space_fossils::core::file_tree {
 		}
 
 		nodesCount += addedNodesCount;
-		RefreshAncestorScanStatuses(parent);
+		RefreshAncestorMetadata(parent, DefaultFileSize, addedSize);
 
 		return AppliedChange{
 			IncomingChangeType::Attach,
@@ -224,6 +246,8 @@ namespace space_fossils::core::file_tree {
 		Node* nextSibling = target->nextSibling;
 		std::size_t removedNodesCount = CountSubtreeNodes(target);
 		std::size_t addedNodesCount = subtree.createdNodesCount;
+		FileSize removedSize = target->logicalSize;
+		FileSize addedSize = replacement->logicalSize;
 
 		if (target == root) {
 			MergeBundlePools(namePool, nodePool, subtree);
@@ -253,7 +277,7 @@ namespace space_fossils::core::file_tree {
 		target->nextSibling = nullptr;
 
 		nodesCount = nodesCount - removedNodesCount + addedNodesCount;
-		RefreshAncestorScanStatuses(replacement->parent);
+		RefreshAncestorMetadata(parent, removedSize, addedSize);
 
 		return AppliedChange{
 			IncomingChangeType::Replace,
@@ -271,6 +295,8 @@ namespace space_fossils::core::file_tree {
 		}
 
 		std::size_t removedNodesCount = CountSubtreeNodes(node);
+		Node* parent = node->parent;
+		FileSize removedSize = node->logicalSize;
 
 		if (node == root) {
 			root = nullptr;
@@ -292,6 +318,7 @@ namespace space_fossils::core::file_tree {
 		node->parent = nullptr;
 		node->nextSibling = nullptr;
 		nodesCount -= removedNodesCount;
+		RefreshAncestorMetadata(parent, removedSize, DefaultFileSize);
 
 		return AppliedChange{
 			IncomingChangeType::Remove,
