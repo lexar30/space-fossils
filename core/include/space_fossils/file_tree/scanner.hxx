@@ -34,7 +34,7 @@ namespace space_fossils::core::file_tree {
 
 		bool ScanDirectory(
 			TreePoolBundle& bundle
-			, const std::filesystem::path& path
+			, const std::filesystem::directory_entry& directoryEntry
 			, std::size_t currentDepth
 			, std::size_t maxDepth
 			, Node* parent

@@ -24,18 +24,34 @@ namespace space_fossils::core::file_tree {
 	{
 		TreePoolBundle bundle = CreateBundle();
 
-		if (bundle.namePool->GetBlockSize() == 0 || bundle.nodePool->GetBlockSize() == 0) {
+		if (bundle.namePool->GetBlockSize() == 0
+			|| bundle.nodePool->GetBlockSize() == 0
+			) {
+			return bundle;
+		}
+
+		std::error_code rootEc;
+		std::filesystem::directory_entry rootEntry(request.path, rootEc);
+		if (rootEc) {
 			return bundle;
 		}
 
 		Node* rootLastChild = nullptr;
-		ScanDirectory(bundle, request.path, 0, request.maxDepth, nullptr, rootLastChild);
+		ScanDirectory(
+			bundle,
+			rootEntry,
+			0,
+			request.maxDepth,
+			nullptr,
+			rootLastChild
+		);
 
 		return bundle;
 	}
 
-	bool Scanner::ScanDirectory(TreePoolBundle& bundle, const std::filesystem::path& path, std::size_t currentDepth, std::size_t maxDepth, Node* parent, Node*& parentLastChild)
+	bool Scanner::ScanDirectory(TreePoolBundle& bundle, const std::filesystem::directory_entry& directoryEntry, std::size_t currentDepth, std::size_t maxDepth, Node* parent, Node*& parentLastChild)
 	{
+		const auto& path = directoryEntry.path();
 		bool isScannedCompletely = true;
 		Node* node = bundle.nodePool->Create();
 		if (node == nullptr) {
@@ -62,7 +78,7 @@ namespace space_fossils::core::file_tree {
 		++bundle.createdNodesCount;
 
 		std::error_code statusEc;
-		std::filesystem::file_status status = std::filesystem::symlink_status(path, statusEc);
+		std::filesystem::file_status status = directoryEntry.symlink_status(statusEc);
 
 		if (statusEc) {
 			if (status.type() == std::filesystem::file_type::not_found
@@ -96,7 +112,7 @@ namespace space_fossils::core::file_tree {
 		if (std::filesystem::is_regular_file(status)) {
 			node->entryType = EntryType::File;
 			std::error_code sizeEc;
-			node->logicalSize = std::filesystem::file_size(path, sizeEc);
+			node->logicalSize = directoryEntry.file_size(sizeEc);
 			if (sizeEc) {
 				node->logicalSize = DefaultFileSize;
 				node->entryStatus = EntryStatus::AccessDenied;
@@ -146,7 +162,7 @@ namespace space_fossils::core::file_tree {
 		Node* childLastChild = nullptr;
 
 		for (const auto& entry : it) {
-			isScannedCompletely &= ScanDirectory(bundle, entry.path(), currentDepth + 1, maxDepth, node, childLastChild);
+			isScannedCompletely &= ScanDirectory(bundle, entry, currentDepth + 1, maxDepth, node, childLastChild);
 		}
 
 		node->scanStatus = isScannedCompletely ? EntryScanStatus::Complete : EntryScanStatus::Partial;
