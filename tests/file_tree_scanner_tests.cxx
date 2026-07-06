@@ -138,6 +138,15 @@ namespace space_fossils::tests {
 
 	SF_TEST(file_tree_scanner, ScanEmptyDirectoryCreatesCompleteDirectoryRoot)
 	{
+		const std::filesystem::path emptyRootPath = SPACE_FOSSILS_FILE_SCANNER_FIXTURE_ROOT_EMPTY;
+
+		std::error_code ec;
+		std::filesystem::remove_all(emptyRootPath, ec);
+		SF_ASSERT_EQ(bool(ec), false);
+
+		std::filesystem::create_directories(emptyRootPath, ec);
+		SF_ASSERT_EQ(bool(ec), false);
+
 		TreePoolBundle bundle = ScanPath(SPACE_FOSSILS_FILE_SCANNER_FIXTURE_ROOT_EMPTY, 1);
 
 		AssertSingleRootBundle(bundle);
