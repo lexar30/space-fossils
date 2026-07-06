@@ -23,12 +23,35 @@ namespace space_fossils::app {
 		std::filesystem::path inputPath;
 		std::filesystem::path treeOutputPath;
 		std::size_t depth = 1;
+		bool helpRequested = false;
 	};
 
 	static void PrintUsage(std::ostream& out)
 	{
 		out << "Usage:\n";
 		out << "  space_fossils_app scan --input <path> [--depth <N>] --tree <output_path>\n";
+	}
+
+	static void PrintHelp(std::ostream& out)
+	{
+		out << "Space Fossils command line\n\n";
+		PrintUsage(out);
+		out << "\nCommands:\n";
+		out << "  scan    Scan a path and write a tree report.\n";
+		out << "  help    Show this help.\n";
+		out << "\nGlobal options:\n";
+		out << "  -h, --help    Show this help.\n";
+	}
+
+	static void PrintScanHelp(std::ostream& out)
+	{
+		out << "Usage:\n";
+		out << "  space_fossils_app scan --input <path> [--depth <N>] --tree <output_path>\n";
+		out << "\nOptions:\n";
+		out << "  --input <path>        Path to scan.\n";
+		out << "  --tree <output_path>  File path for the text tree report.\n";
+		out << "  --depth <N>           Maximum depth for this scan. 0 writes only the root node.\n";
+		out << "  -h, --help            Show this help.\n";
 	}
 
 	static CliStringView MakeCliStringView(const CliChar* value)
@@ -50,6 +73,13 @@ namespace space_fossils::app {
 		}
 
 		return index == value.size() && ascii[index] == '\0';
+	}
+
+	static bool IsHelpArgument(CliStringView value)
+	{
+		return EqualsAscii(value, "help")
+			|| EqualsAscii(value, "--help")
+			|| EqualsAscii(value, "-h");
 	}
 
 	static void WriteCliValue(std::ostream& out, CliStringView value)
@@ -131,12 +161,19 @@ namespace space_fossils::app {
 					return false;
 				}
 			}
+			else if (IsHelpArgument(argument)) {
+				options.helpRequested = true;
+			}
 			else {
 				std::cerr << "Unknown argument: ";
 				WriteCliValue(std::cerr, argument);
 				std::cerr << ".\n";
 				return false;
 			}
+		}
+
+		if (options.helpRequested) {
+			return true;
 		}
 
 		if (options.inputPath.empty()) {
@@ -163,7 +200,9 @@ namespace space_fossils::app {
 		file_tree::ScanCoordinator coordinator(storage, std::move(config));
 		coordinator.ScheduleRootScan(options.depth);
 
-		while (coordinator.ProcessNext().has_value()) {
+		if (!coordinator.ProcessNext().has_value()) {
+			std::cerr << "Scan did not produce a root node.\n";
+			return 2;
 		}
 
 		const file_tree::Node* root = storage.GetRoot();
@@ -195,6 +234,11 @@ namespace space_fossils::app {
 		}
 
 		const CliStringView command = MakeCliStringView(argv[1]);
+		if (IsHelpArgument(command)) {
+			PrintHelp(std::cout);
+			return 0;
+		}
+
 		if (!EqualsAscii(command, "scan")) {
 			std::cerr << "Unknown command: ";
 			WriteCliValue(std::cerr, command);
@@ -207,6 +251,11 @@ namespace space_fossils::app {
 		if (!ParseScanCommand(argc, argv, options)) {
 			PrintUsage(std::cerr);
 			return 1;
+		}
+
+		if (options.helpRequested) {
+			PrintScanHelp(std::cout);
+			return 0;
 		}
 
 		return RunScanCommand(options);
