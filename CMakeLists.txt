@@ -44,6 +44,7 @@ target_sources(space_fossils_core
 		core/include/space_fossils/core.hxx
 		core/include/space_fossils/size_formatter.hxx
 		core/include/space_fossils/operation_timer.hxx
+		core/include/space_fossils/scan_summary.hxx
 		core/include/space_fossils/file_tree/types.hxx
 		core/include/space_fossils/file_tree/node.hxx
 )
