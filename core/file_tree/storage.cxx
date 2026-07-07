@@ -168,6 +168,60 @@ namespace space_fossils::core::file_tree {
 		}
 	}
 
+	FileSize Storage::GetRootSize() const
+	{
+		if (root == nullptr) {
+			return DefaultFileSize;
+		}
+
+		return root->logicalSize;
+	}
+
+	std::size_t Storage::GetNamePoolAllocatedBytes() const
+	{
+		return namePool.GetAllocatedBytes();
+	}
+
+	std::size_t Storage::GetNamePoolUsedBytes() const
+	{
+		return namePool.GetUsedBytes();
+	}
+
+	std::size_t Storage::GetNamePoolBlocksCount() const
+	{
+		return namePool.GetBlocksCount();
+	}
+
+	std::size_t Storage::GetNamePoolBlockSize() const
+	{
+		return namePool.GetBlockSize();
+	}
+
+	std::size_t Storage::GetNodePoolLiveNodesCount() const
+	{
+		return nodePool.GetLiveNodesCount();
+	}
+
+	std::size_t Storage::GetNodePoolAllocatedBytes() const
+	{
+		return nodePool.GetAllocatedBytes();
+	}
+
+	std::size_t Storage::GetNodePoolUsedBytes() const
+	{
+		return nodePool.GetUsedBytes();
+	}
+
+	std::size_t Storage::GetNodePoolBlocksCount() const
+	{
+		return nodePool.GetBlocksCount();
+	}
+
+	std::size_t Storage::GetNodePoolBlockSize() const
+	{
+		return nodePool.GetBlockSize();
+	}
+
 	std::optional<AppliedChange> Storage::AdoptRoot(TreePoolBundle&& subtree)
 	{
 		if (!IsValidBundle(subtree)) {

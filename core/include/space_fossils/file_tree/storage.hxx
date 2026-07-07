@@ -35,6 +35,19 @@ namespace space_fossils::core::file_tree {
 
 		std::optional<AppliedChange> ApplyChange(IncomingChange&& change);
 
+		FileSize GetRootSize() const;
+
+		std::size_t GetNamePoolAllocatedBytes() const;
+		std::size_t GetNamePoolUsedBytes() const;
+		std::size_t GetNamePoolBlocksCount() const;
+		std::size_t GetNamePoolBlockSize() const;
+
+		std::size_t GetNodePoolLiveNodesCount() const;
+		std::size_t GetNodePoolAllocatedBytes() const;
+		std::size_t GetNodePoolUsedBytes() const;
+		std::size_t GetNodePoolBlocksCount() const;
+		std::size_t GetNodePoolBlockSize() const;
+
 	private:
 		std::optional<AppliedChange> AdoptRoot(TreePoolBundle&& subtree);
 		std::optional<AppliedChange> AttachChild(Node* parent, TreePoolBundle&& subtree);

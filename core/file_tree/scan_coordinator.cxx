@@ -32,7 +32,11 @@ namespace space_fossils::core::file_tree {
 				return std::nullopt;
 			}
 
+			scanTimer.Reset();
+			scanTimer.Start();
 			TreePoolBundle bundle = scanner.Scan(job.value().request);
+			scanTimer.Stop();
+			scanElapsedTime += scanTimer.Elapsed();
 
 			IncomingChange incomingChanges;
 			incomingChanges.bundle = std::move(bundle);
@@ -47,6 +51,28 @@ namespace space_fossils::core::file_tree {
 		}
 
 		return std::nullopt;
+	}
+
+	ScanSummary ScanCoordinator::GetScanSummary() const
+	{
+		ScanSummary summary;
+
+		summary.totalScanElapsedTime = scanElapsedTime;
+		summary.storedNodesCount = storage.GetNodesCount();
+		summary.totalLogicalSize = storage.GetRootSize();
+
+		summary.namePoolSummary.allocatedBytes = storage.GetNamePoolAllocatedBytes();
+		summary.namePoolSummary.usedBytes = storage.GetNamePoolUsedBytes();
+		summary.namePoolSummary.blocksCount = storage.GetNamePoolBlocksCount();
+		summary.namePoolSummary.blockSize = storage.GetNamePoolBlockSize();
+
+		summary.nodePoolSummary.allocatedBytes = storage.GetNodePoolAllocatedBytes();
+		summary.nodePoolSummary.usedBytes = storage.GetNodePoolUsedBytes();
+		summary.nodePoolSummary.blocksCount = storage.GetNodePoolBlocksCount();
+		summary.nodePoolSummary.blockSize = storage.GetNodePoolBlockSize();
+		summary.nodePoolSummary.liveNodesCount = storage.GetNodePoolLiveNodesCount();
+
+		return summary;
 	}
 
 	void ScanCoordinator::SchedulePending(Node* node, const std::filesystem::path& path)

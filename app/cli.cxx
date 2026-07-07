@@ -4,6 +4,7 @@
 #include "space_fossils/file_tree/scan_coordinator.hxx"
 #include "space_fossils/file_tree/storage.hxx"
 #include "space_fossils/file_tree/text_report_writer.hxx"
+#include "space_fossils/scan_summary.hxx"
 
 #include <filesystem>
 #include <fstream>
@@ -222,6 +223,25 @@ namespace space_fossils::app {
 			std::cerr << "Failed to write tree report: " << options.treeOutputPath << ".\n";
 			return 4;
 		}
+
+		space_fossils::core::ScanSummary summary = coordinator.GetScanSummary();
+
+		std::cout << "\n\n";
+		std::cout << "summary.totalScanElapsedTime " << summary.totalScanElapsedTime << "\n";
+		std::cout << "summary.storedNodesCount " << summary.storedNodesCount << "\n";
+		std::cout << "summary.totalLogicalSize " << summary.totalLogicalSize << "\n";
+		std::cout << "\n";
+		std::cout << "summary.namePoolSummary.allocatedBytes " << summary.namePoolSummary.allocatedBytes << "\n";
+		std::cout << "summary.namePoolSummary.usedBytes " << summary.namePoolSummary.usedBytes << "\n";
+		std::cout << "summary.namePoolSummary.blocksCount " << summary.namePoolSummary.blocksCount << "\n";
+		std::cout << "summary.namePoolSummary.blockSize " << summary.namePoolSummary.blockSize << "\n";
+		std::cout << "\n";
+		std::cout << "summary.nodePoolSummary.allocatedBytes " << summary.nodePoolSummary.allocatedBytes << "\n";
+		std::cout << "summary.nodePoolSummary.usedBytes " << summary.nodePoolSummary.usedBytes << "\n";
+		std::cout << "summary.nodePoolSummary.blocksCount " << summary.nodePoolSummary.blocksCount << "\n";
+		std::cout << "summary.nodePoolSummary.blockSize " << summary.nodePoolSummary.blockSize << "\n";
+		std::cout << "summary.nodePoolSummary.liveNodesCount " << summary.nodePoolSummary.liveNodesCount << "\n";
+		std::cout << "\n";
 
 		return 0;
 	}
