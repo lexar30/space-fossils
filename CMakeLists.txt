@@ -24,6 +24,7 @@ target_sources(space_fossils_core
 		core/file_tree/scanner.cxx
 		core/file_tree/scan_scheduler.cxx
 		core/file_tree/scan_coordinator.cxx
+		core/file_tree/snapshot_writer.cxx
 		core/file_tree/text_report_writer.cxx
 		core/size_formatter.cxx
 		core/operation_timer.cxx
@@ -42,6 +43,7 @@ target_sources(space_fossils_core
 		core/include/space_fossils/file_tree/scan_scheduler.hxx
 		core/include/space_fossils/file_tree/scan_coordinator.hxx
 		core/include/space_fossils/file_tree/text_report_writer.hxx
+		core/include/space_fossils/file_tree/snapshot_writer.hxx
 		core/include/space_fossils/core.hxx
 		core/include/space_fossils/size_formatter.hxx
 		core/include/space_fossils/operation_timer.hxx
