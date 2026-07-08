@@ -1,5 +1,6 @@
 #include "space_fossils/file_tree/snapshot_writer.hxx"
 #include "space_fossils/file_tree/node.hxx"
+#include "space_fossils/file_tree/types.hxx"
 #include "space_fossils/version.hxx"
 
 #include <chrono>
