@@ -83,6 +83,8 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(TreeQuery::GetDepth(nullptr), 0);
 		SF_ASSERT_EQ(TreeQuery::CollectChildren(nullptr).empty(), true);
 		SF_ASSERT_EQ(TreeQuery::FindChildByName(nullptr, missingName) == nullptr, true);
+		SF_ASSERT_EQ(TreeQuery::FindNodeByPath(nullptr, missingName) == nullptr, true);
+		SF_ASSERT_EQ(TreeQuery::FindClosestNodeByPath(nullptr, missingName) == nullptr, true);
 		SF_ASSERT_EQ(TreeQuery::CountSubtreeNodes(nullptr), 0);
 		SF_ASSERT_EQ(TreeQuery::ContainsInSiblingChain(nullptr, nullptr), false);
 		SF_ASSERT_EQ(TreeQuery::ContainsInSubtree(nullptr, nullptr), false);
@@ -288,6 +290,264 @@ namespace space_fossils::tests {
 		AppendChild(root, second);
 
 		SF_ASSERT_EQ(TreeQuery::FindChildByName(&root, duplicateName) == &first, true);
+	}
+
+	SF_TEST(file_tree_tree_query, FindNodeByPathReturnsStartForEmptyPath)
+	{
+		NativeString rootName = MakeNativeString("root");
+
+		Node root;
+		root.name = MakeNameRef(rootName);
+
+		SF_ASSERT_EQ(TreeQuery::FindNodeByPath(&root, {}) == &root, true);
+	}
+
+	SF_TEST(file_tree_tree_query, FindNodeByPathFindsNestedRelativePath)
+	{
+		NativeString rootName = MakeNativeString("root");
+		NativeString folderName = MakeNativeString("folder");
+		NativeString nestedName = MakeNativeString("nested");
+		NativeString fileName = MakeNativeString("file.txt");
+		NativeString searchPath = MakeNativeString("folder/nested/file.txt");
+
+		Node root;
+		root.name = MakeNameRef(rootName);
+
+		Node folder;
+		folder.name = MakeNameRef(folderName);
+
+		Node nested;
+		nested.name = MakeNameRef(nestedName);
+
+		Node file;
+		file.name = MakeNameRef(fileName);
+
+		AppendChild(root, folder);
+		AppendChild(folder, nested);
+		AppendChild(nested, file);
+
+		SF_ASSERT_EQ(TreeQuery::FindNodeByPath(&root, searchPath) == &file, true);
+		SF_ASSERT_EQ(TreeQuery::FindNodeByPath(&folder, MakeNativeString("nested/file.txt")) == &file, true);
+	}
+
+	SF_TEST(file_tree_tree_query, FindNodeByPathSupportsBackslashSeparators)
+	{
+		NativeString rootName = MakeNativeString("root");
+		NativeString folderName = MakeNativeString("folder");
+		NativeString fileName = MakeNativeString("file.txt");
+		NativeString searchPath = MakeNativeString("folder\\file.txt");
+
+		Node root;
+		root.name = MakeNameRef(rootName);
+
+		Node folder;
+		folder.name = MakeNameRef(folderName);
+
+		Node file;
+		file.name = MakeNameRef(fileName);
+
+		AppendChild(root, folder);
+		AppendChild(folder, file);
+
+		SF_ASSERT_EQ(TreeQuery::FindNodeByPath(&root, searchPath) == &file, true);
+	}
+
+	SF_TEST(file_tree_tree_query, FindNodeByPathAcceptsRootNameAsFirstComponent)
+	{
+		NativeString rootName = MakeNativeString("C:/");
+		NativeString folderName = MakeNativeString("folder");
+		NativeString fileName = MakeNativeString("file.txt");
+		NativeString searchPath = MakeNativeString("C:/folder/file.txt");
+
+		Node root;
+		root.name = MakeNameRef(rootName);
+
+		Node folder;
+		folder.name = MakeNameRef(folderName);
+
+		Node file;
+		file.name = MakeNameRef(fileName);
+
+		AppendChild(root, folder);
+		AppendChild(folder, file);
+
+		SF_ASSERT_EQ(TreeQuery::FindNodeByPath(&root, searchPath) == &file, true);
+	}
+
+	SF_TEST(file_tree_tree_query, FindNodeByPathSkipsRepeatedSeparatorsAndCurrentComponents)
+	{
+		NativeString rootName = MakeNativeString("root");
+		NativeString folderName = MakeNativeString("folder");
+		NativeString fileName = MakeNativeString("file.txt");
+		NativeString searchPath = MakeNativeString("./folder//./file.txt/");
+
+		Node root;
+		root.name = MakeNameRef(rootName);
+
+		Node folder;
+		folder.name = MakeNameRef(folderName);
+
+		Node file;
+		file.name = MakeNameRef(fileName);
+
+		AppendChild(root, folder);
+		AppendChild(folder, file);
+
+		SF_ASSERT_EQ(TreeQuery::FindNodeByPath(&root, searchPath) == &file, true);
+	}
+
+	SF_TEST(file_tree_tree_query, FindNodeByPathCanMoveToParent)
+	{
+		NativeString rootName = MakeNativeString("root");
+		NativeString firstFolderName = MakeNativeString("first");
+		NativeString secondFolderName = MakeNativeString("second");
+		NativeString fileName = MakeNativeString("file.txt");
+		NativeString searchPath = MakeNativeString("../second/file.txt");
+
+		Node root;
+		root.name = MakeNameRef(rootName);
+
+		Node firstFolder;
+		firstFolder.name = MakeNameRef(firstFolderName);
+
+		Node secondFolder;
+		secondFolder.name = MakeNameRef(secondFolderName);
+
+		Node file;
+		file.name = MakeNameRef(fileName);
+
+		AppendChild(root, firstFolder);
+		AppendChild(root, secondFolder);
+		AppendChild(secondFolder, file);
+
+		SF_ASSERT_EQ(TreeQuery::FindNodeByPath(&firstFolder, searchPath) == &file, true);
+	}
+
+	SF_TEST(file_tree_tree_query, FindNodeByPathReturnsNullForMissingComponents)
+	{
+		NativeString rootName = MakeNativeString("root");
+		NativeString folderName = MakeNativeString("folder");
+		NativeString missingPath = MakeNativeString("folder/missing.txt");
+
+		Node root;
+		root.name = MakeNameRef(rootName);
+
+		Node folder;
+		folder.name = MakeNameRef(folderName);
+
+		AppendChild(root, folder);
+
+		SF_ASSERT_EQ(TreeQuery::FindNodeByPath(&root, missingPath) == nullptr, true);
+	}
+
+	SF_TEST(file_tree_tree_query, FindNodeByPathReturnsNullWhenParentOfRootIsRequested)
+	{
+		NativeString rootName = MakeNativeString("root");
+		NativeString parentPath = MakeNativeString("..");
+
+		Node root;
+		root.name = MakeNameRef(rootName);
+
+		SF_ASSERT_EQ(TreeQuery::FindNodeByPath(&root, parentPath) == nullptr, true);
+	}
+
+	SF_TEST(file_tree_tree_query, FindClosestNodeByPathReturnsStartForEmptyPath)
+	{
+		NativeString rootName = MakeNativeString("root");
+
+		Node root;
+		root.name = MakeNameRef(rootName);
+
+		SF_ASSERT_EQ(TreeQuery::FindClosestNodeByPath(&root, {}) == &root, true);
+	}
+
+	SF_TEST(file_tree_tree_query, FindClosestNodeByPathReturnsExactTargetWhenPathExists)
+	{
+		NativeString rootName = MakeNativeString("root");
+		NativeString folderName = MakeNativeString("folder");
+		NativeString fileName = MakeNativeString("file.txt");
+		NativeString searchPath = MakeNativeString("folder/file.txt");
+
+		Node root;
+		root.name = MakeNameRef(rootName);
+
+		Node folder;
+		folder.name = MakeNameRef(folderName);
+
+		Node file;
+		file.name = MakeNameRef(fileName);
+
+		AppendChild(root, folder);
+		AppendChild(folder, file);
+
+		SF_ASSERT_EQ(TreeQuery::FindClosestNodeByPath(&root, searchPath) == &file, true);
+	}
+
+	SF_TEST(file_tree_tree_query, FindClosestNodeByPathReturnsClosestExistingParentWhenMiddleComponentIsMissing)
+	{
+		NativeString rootName = MakeNativeString("C:");
+		NativeString folderName = MakeNativeString("folder1");
+		NativeString searchPath = MakeNativeString("C:/folder1/folder2/folder3");
+
+		Node root;
+		root.name = MakeNameRef(rootName);
+
+		Node folder;
+		folder.name = MakeNameRef(folderName);
+
+		AppendChild(root, folder);
+
+		SF_ASSERT_EQ(TreeQuery::FindClosestNodeByPath(&root, searchPath) == &folder, true);
+	}
+
+	SF_TEST(file_tree_tree_query, FindClosestNodeByPathReturnsStartWhenFirstComponentIsMissing)
+	{
+		NativeString rootName = MakeNativeString("root");
+		NativeString searchPath = MakeNativeString("missing/folder");
+
+		Node root;
+		root.name = MakeNameRef(rootName);
+
+		SF_ASSERT_EQ(TreeQuery::FindClosestNodeByPath(&root, searchPath) == &root, true);
+	}
+
+	SF_TEST(file_tree_tree_query, FindClosestNodeByPathAcceptsRootNameWithTrailingSeparator)
+	{
+		NativeString rootName = MakeNativeString("C:/");
+		NativeString folderName = MakeNativeString("folder1");
+		NativeString searchPath = MakeNativeString("C:/folder1");
+
+		Node root;
+		root.name = MakeNameRef(rootName);
+
+		Node folder;
+		folder.name = MakeNameRef(folderName);
+
+		AppendChild(root, folder);
+
+		SF_ASSERT_EQ(TreeQuery::FindClosestNodeByPath(&root, searchPath) == &folder, true);
+	}
+
+	SF_TEST(file_tree_tree_query, FindClosestNodeByPathReturnsClosestAfterParentTraversal)
+	{
+		NativeString rootName = MakeNativeString("root");
+		NativeString firstName = MakeNativeString("first");
+		NativeString secondName = MakeNativeString("second");
+		NativeString searchPath = MakeNativeString("../missing");
+
+		Node root;
+		root.name = MakeNameRef(rootName);
+
+		Node first;
+		first.name = MakeNameRef(firstName);
+
+		Node second;
+		second.name = MakeNameRef(secondName);
+
+		AppendChild(root, first);
+		AppendChild(first, second);
+
+		SF_ASSERT_EQ(TreeQuery::FindClosestNodeByPath(&second, searchPath) == &first, true);
 	}
 
 	SF_TEST(file_tree_tree_query, CountAndContainsUseDifferentTraversalContracts)

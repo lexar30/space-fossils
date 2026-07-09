@@ -220,6 +220,7 @@ namespace space_fossils::tests {
 
 		SF_ASSERT_EQ(storage.GetRoot() == nullptr, true);
 		SF_ASSERT_EQ(storage.GetNodesCount(), 0);
+		SF_ASSERT_EQ(storage.GetVersion(), 0);
 	}
 
 	SF_TEST(file_tree_storage, CustomConfigStartsEmpty)
@@ -240,6 +241,60 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(appliedChange.has_value(), false);
 		SF_ASSERT_EQ(storage.GetRoot() == nullptr, true);
 		SF_ASSERT_EQ(storage.GetNodesCount(), 0);
+		SF_ASSERT_EQ(storage.GetVersion(), 0);
+	}
+
+	SF_TEST(file_tree_storage, VersionBumpsAfterSuccessfulApplyChanges)
+	{
+		Storage storage(MakeConfig());
+		NativeString rootName = MakeNativeString("root");
+		NativeString childName = MakeNativeString("child");
+		NativeString replacementName = MakeNativeString("replacement");
+
+		SF_ASSERT_EQ(storage.GetVersion(), 0);
+
+		Node* root = ApplyAdoptRoot(storage, MakeSubtree(rootName));
+		SF_ASSERT_EQ(storage.GetVersion(), 1);
+
+		Node* child = ApplyAttachChild(storage, root, MakeSubtree(childName));
+		SF_ASSERT_EQ(storage.GetVersion(), 2);
+
+		Node* replacement = ApplyReplaceSubtree(storage, child, MakeSubtree(replacementName));
+		SF_ASSERT_EQ(storage.GetVersion(), 3);
+
+		SF_ASSERT_EQ(ApplyRemoveSubtree(storage, replacement), true);
+		SF_ASSERT_EQ(storage.GetVersion(), 4);
+	}
+
+	SF_TEST(file_tree_storage, VersionDoesNotBumpAfterRejectedApplyChanges)
+	{
+		Storage storage(MakeConfig());
+		NativeString rootName = MakeNativeString("root");
+		NativeString childName = MakeNativeString("child");
+		NativeString replacementName = MakeNativeString("replacement");
+
+		TreePoolBundle emptyBundle = MakeBundle();
+		std::optional<AppliedChange> rejectedAdopt = TryAdoptRoot(storage, std::move(emptyBundle));
+		SF_ASSERT_EQ(rejectedAdopt.has_value(), false);
+		SF_ASSERT_EQ(storage.GetVersion(), 0);
+
+		Node* root = ApplyAdoptRoot(storage, MakeSubtree(rootName));
+		SF_ASSERT_EQ(storage.GetVersion(), 1);
+
+		std::optional<AppliedChange> rejectedAttach = TryAttachChild(storage, nullptr, MakeSubtree(childName));
+		SF_ASSERT_EQ(rejectedAttach.has_value(), false);
+		SF_ASSERT_EQ(storage.GetVersion(), 1);
+
+		std::optional<AppliedChange> rejectedReplace = TryReplaceSubtree(storage, nullptr, MakeSubtree(replacementName));
+		SF_ASSERT_EQ(rejectedReplace.has_value(), false);
+		SF_ASSERT_EQ(storage.GetVersion(), 1);
+
+		std::optional<AppliedChange> rejectedRemove = TryRemoveSubtree(storage, nullptr);
+		SF_ASSERT_EQ(rejectedRemove.has_value(), false);
+		SF_ASSERT_EQ(storage.GetVersion(), 1);
+
+		SF_ASSERT_EQ(storage.GetRoot() == root, true);
+		SF_ASSERT_EQ(storage.GetNodesCount(), 1);
 	}
 
 	SF_TEST(file_tree_storage, AdoptRootMergesBundlePools)
@@ -757,5 +812,19 @@ namespace space_fossils::tests {
 
 		SF_ASSERT_EQ(storage.GetRoot() == nullptr, true);
 		SF_ASSERT_EQ(storage.GetNodesCount(), 0);
+		SF_ASSERT_EQ(storage.GetVersion(), 3);
+	}
+
+	SF_TEST(file_tree_storage, ClearBumpsVersionForEmptyStorage)
+	{
+		Storage storage(MakeConfig());
+
+		SF_ASSERT_EQ(storage.GetVersion(), 0);
+
+		storage.Clear();
+
+		SF_ASSERT_EQ(storage.GetRoot() == nullptr, true);
+		SF_ASSERT_EQ(storage.GetNodesCount(), 0);
+		SF_ASSERT_EQ(storage.GetVersion(), 1);
 	}
 }

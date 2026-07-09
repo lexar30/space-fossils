@@ -110,30 +110,44 @@ namespace space_fossils::core::file_tree {
 
 	std::optional<AppliedChange> Storage::ApplyChange(IncomingChange&& change)
 	{
+		std::optional<AppliedChange> appliedChange;
+
 		switch (change.type) {
 		case IncomingChangeType::AdoptRoot:
-			return AdoptRoot(std::move(change.bundle));
+			appliedChange = AdoptRoot(std::move(change.bundle));
+			break;
 
 		case IncomingChangeType::Attach: {
 			if (change.target == nullptr) {
 				return std::nullopt;
 			}
-			return AttachChild(change.target, std::move(change.bundle));
+
+			appliedChange = AttachChild(change.target, std::move(change.bundle));
+			break;
 		}
 
 		case IncomingChangeType::Replace: {
 			if (change.target == nullptr) {
 				return std::nullopt;
 			}
-			return ReplaceSubtree(change.target, std::move(change.bundle));
+
+			appliedChange = ReplaceSubtree(change.target, std::move(change.bundle));
+			break;
 		}
 
 		case IncomingChangeType::Remove:
-			return RemoveSubtree(change.target);
+			appliedChange = RemoveSubtree(change.target);
+			break;
 
 		default:
 			return std::nullopt;
 		}
+
+		if (appliedChange.has_value()) {
+			++version;
+		}
+
+		return appliedChange;
 	}
 
 	FileSize Storage::GetRootSize() const
@@ -143,6 +157,11 @@ namespace space_fossils::core::file_tree {
 		}
 
 		return root->logicalSize;
+	}
+
+	StorageVersion Storage::GetVersion() const
+	{
+		return version;
 	}
 
 	std::size_t Storage::GetNamePoolAllocatedBytes() const
@@ -357,6 +376,7 @@ namespace space_fossils::core::file_tree {
 		root = nullptr;
 		nodePool.Release();
 		namePool.Release();
+		++version;
 	}
 
 	Node* Storage::GetRoot()

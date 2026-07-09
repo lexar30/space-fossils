@@ -38,6 +38,8 @@ namespace space_fossils::core::file_tree {
 
 		FileSize GetRootSize() const;
 
+		StorageVersion GetVersion() const;
+
 		std::size_t GetNamePoolAllocatedBytes() const;
 		std::size_t GetNamePoolUsedBytes() const;
 		std::size_t GetNamePoolBlocksCount() const;
@@ -64,6 +66,8 @@ namespace space_fossils::core::file_tree {
 
 	private:
 		const StorageConfig config;
+		StorageVersion version = 0;
+
 		NamePool namePool;
 		NodePool nodePool;
 

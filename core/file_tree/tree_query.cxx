@@ -100,6 +100,125 @@ namespace space_fossils::core::file_tree {
 		return child;
 	}
 
+	const Node* TreeQuery::FindNodeByPath(const Node* start, NativeStringView path)
+	{
+		if (start == nullptr) {
+			return nullptr;
+		}
+
+		const Node* current = start;
+		bool isFirstComponent = true;
+		std::size_t componentStart = 0;
+		while (componentStart < path.size()) {
+			while (componentStart < path.size() && IsPathSeparator(path[componentStart])) {
+				++componentStart;
+			}
+
+			if (componentStart >= path.size()) {
+				break;
+			}
+
+			std::size_t componentEnd = componentStart;
+			while (componentEnd < path.size() && !IsPathSeparator(path[componentEnd])) {
+				++componentEnd;
+			}
+
+			const NativeStringView component = path.substr(componentStart, componentEnd - componentStart);
+			if (IsCurrentPathComponent(component)) {
+				componentStart = componentEnd;
+				isFirstComponent = false;
+				continue;
+			}
+
+			if (isFirstComponent && current->parent == nullptr && IsNodeNamePathComponent(current, component)) {
+				componentStart = componentEnd;
+				isFirstComponent = false;
+				continue;
+			}
+
+			if (IsParentPathComponent(component)) {
+				if (current->parent == nullptr) {
+					return nullptr;
+				}
+
+				current = current->parent;
+				componentStart = componentEnd;
+				isFirstComponent = false;
+				continue;
+			}
+
+			current = FindChildByName(current, component);
+			if (current == nullptr) {
+				return nullptr;
+			}
+
+			componentStart = componentEnd;
+			isFirstComponent = false;
+		}
+
+		return current;
+	}
+
+	const Node* TreeQuery::FindClosestNodeByPath(const Node* start, NativeStringView path)
+	{
+		if (start == nullptr) {
+			return nullptr;
+		}
+
+		const Node* current = start;
+		bool isFirstComponent = true;
+		std::size_t componentStart = 0;
+		while (componentStart < path.size()) {
+			while (componentStart < path.size() && IsPathSeparator(path[componentStart])) {
+				++componentStart;
+			}
+
+			if (componentStart >= path.size()) {
+				break;
+			}
+
+			std::size_t componentEnd = componentStart;
+			while (componentEnd < path.size() && !IsPathSeparator(path[componentEnd])) {
+				++componentEnd;
+			}
+
+			const NativeStringView component = path.substr(componentStart, componentEnd - componentStart);
+			if (IsCurrentPathComponent(component)) {
+				componentStart = componentEnd;
+				isFirstComponent = false;
+				continue;
+			}
+
+			if (isFirstComponent && current->parent == nullptr && IsNodeNamePathComponent(current, component)) {
+				componentStart = componentEnd;
+				isFirstComponent = false;
+				continue;
+			}
+
+			if (IsParentPathComponent(component)) {
+				if (current->parent == nullptr) {
+					return current;
+				}
+
+				current = current->parent;
+				componentStart = componentEnd;
+				isFirstComponent = false;
+				continue;
+			}
+
+			const Node* next = FindChildByName(current, component);
+			if (next == nullptr) {
+				return current;
+			}
+
+			current = next;
+			componentStart = componentEnd;
+			isFirstComponent = false;
+		}
+
+		return current;
+	}
+
 	std::size_t TreeQuery::CountSubtreeNodes(const Node* node)
 	{
 		if (node == nullptr) {
@@ -161,8 +280,42 @@ namespace space_fossils::core::file_tree {
 
 	bool TreeQuery::EndsWithSeparator(NativeStringView value)
 	{
-		return !value.empty()
-			&& (value.back() == static_cast<NativeChar>('\\')
-				|| value.back() == static_cast<NativeChar>('/'));
+		return !value.empty() && IsPathSeparator(value.back());
+	}
+
+	bool TreeQuery::IsPathSeparator(NativeChar value)
+	{
+		return value == static_cast<NativeChar>('\\')
+			|| value == static_cast<NativeChar>('/');
+	}
+
+	bool TreeQuery::IsCurrentPathComponent(NativeStringView value)
+	{
+		return value.size() == 1 && value[0] == static_cast<NativeChar>('.');
+	}
+
+	bool TreeQuery::IsParentPathComponent(NativeStringView value)
+	{
+		return value.size() == 2
+			&& value[0] == static_cast<NativeChar>('.')
+			&& value[1] == static_cast<NativeChar>('.');
+	}
+
+	bool TreeQuery::IsNodeNamePathComponent(const Node* node, NativeStringView component)
+	{
+		if (node == nullptr) {
+			return false;
+		}
+
+		return TrimTrailingSeparators(ToStringView(node->name)) == TrimTrailingSeparators(component);
+	}
+
+	NativeStringView TreeQuery::TrimTrailingSeparators(NativeStringView value)
+	{
+		while (!value.empty() && IsPathSeparator(value.back())) {
+			value.remove_suffix(1);
+		}
+
+		return value;
 	}
 }

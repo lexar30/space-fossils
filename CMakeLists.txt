@@ -28,6 +28,7 @@ target_sources(space_fossils_core
 		core/file_tree/snapshot_writer.cxx
 		core/file_tree/text_report_writer.cxx
 		core/file_tree/tree_query.cxx
+		core/file_tree/session.cxx
 		core/size_formatter.cxx
 		core/operation_timer.cxx
 
@@ -49,6 +50,7 @@ target_sources(space_fossils_core
 		core/include/space_fossils/file_tree/snapshot_reader.hxx
 		core/include/space_fossils/file_tree/snapshot_writer.hxx
 		core/include/space_fossils/file_tree/tree_query.hxx
+		core/include/space_fossils/file_tree/session.hxx
 		core/include/space_fossils/core.hxx
 		core/include/space_fossils/size_formatter.hxx
 		core/include/space_fossils/operation_timer.hxx

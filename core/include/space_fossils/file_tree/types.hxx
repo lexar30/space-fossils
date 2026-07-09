@@ -14,6 +14,8 @@ namespace space_fossils::core::file_tree {
 	using FileSize = std::uintmax_t;
 	inline constexpr FileSize DefaultFileSize = 0;
 
+	using StorageVersion = std::uint64_t;
+
 	enum class EntryType {
 		Unknown
 		, File
