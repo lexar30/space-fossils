@@ -35,6 +35,7 @@ target_sources(space_fossils_core
 		core/include/space_fossils/memory/memory_arena.hxx
 		core/include/space_fossils/file_tree/name_pool.hxx
 		core/include/space_fossils/file_tree/node_pool.hxx
+		core/include/space_fossils/file_tree/default_constants.hxx
 		core/include/space_fossils/file_tree/change_type.hxx
 		core/include/space_fossils/file_tree/scan_request.hxx
 		core/include/space_fossils/file_tree/scan_job.hxx

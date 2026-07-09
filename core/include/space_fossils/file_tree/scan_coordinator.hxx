@@ -1,5 +1,6 @@
 #pragma once
 
+#include <space_fossils/file_tree/default_constants.hxx>
 #include <space_fossils/file_tree/scan_scheduler.hxx>
 #include <space_fossils/file_tree/scanner.hxx>
 #include <space_fossils/file_tree/storage_change.hxx>
@@ -8,7 +9,6 @@
 
 #include <cstddef>
 #include <filesystem>
-#include <limits>
 #include <optional>
 
 namespace space_fossils::core::file_tree {
@@ -17,7 +17,7 @@ namespace space_fossils::core::file_tree {
 	struct ScanCoordinatorConfig
 	{
 		std::filesystem::path rootPath;
-		std::size_t defaultScanDepth = std::numeric_limits<std::size_t>().max();
+		std::size_t defaultScanDepth = UnlimitedScanDepth;
 	};
 
 	class ScanCoordinator
@@ -25,7 +25,7 @@ namespace space_fossils::core::file_tree {
 	public:
 		ScanCoordinator(Storage& storage, ScanCoordinatorConfig config = {});
 
-		void ScheduleRootScan(std::size_t maxDepth = 1);
+		void ScheduleRootScan(std::size_t maxDepth = DefaultScanDepth);
 		std::optional<AppliedChange> ProcessNext();
 
 		ScanSummary GetScanSummary() const;

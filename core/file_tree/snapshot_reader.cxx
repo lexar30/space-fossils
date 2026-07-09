@@ -1,4 +1,5 @@
 #include "space_fossils/file_tree/snapshot_reader.hxx"
+#include "space_fossils/file_tree/default_constants.hxx"
 #include "space_fossils/file_tree/name_pool.hxx"
 #include "space_fossils/file_tree/node.hxx"
 #include "space_fossils/file_tree/node_pool.hxx"
@@ -22,9 +23,6 @@ namespace space_fossils::core::file_tree {
 			std::uint64_t remainingChildCount = 0;
 			Node* lastChild = nullptr;
 		};
-
-		constexpr std::size_t DefaultSnapshotNameBlockSize = sizeof(NativeChar) * 4096;
-		constexpr std::size_t DefaultSnapshotNodeBlockSize = sizeof(Node) * 1024;
 	}
 
 	std::optional<TreePoolBundle> SnapshotReader::TryReadSnapshot(std::istream& in) const
@@ -33,8 +31,8 @@ namespace space_fossils::core::file_tree {
 
 		bundle.root = nullptr;
 		bundle.createdNodesCount = 0;
-		bundle.namePool = std::make_unique<NamePool>(DefaultSnapshotNameBlockSize);
-		bundle.nodePool = std::make_unique<NodePool>(DefaultSnapshotNodeBlockSize);
+		bundle.namePool = std::make_unique<NamePool>(DefaultNameBlockSize);
+		bundle.nodePool = std::make_unique<NodePool>(DefaultNodeBlockSize);
 
 		if (!TryReadAndCheckMetadata(in)) {
 			return std::nullopt;

@@ -1,5 +1,6 @@
 #include "cli.hxx"
 
+#include "space_fossils/file_tree/default_constants.hxx"
 #include "space_fossils/file_tree/node.hxx"
 #include "space_fossils/file_tree/scan_coordinator.hxx"
 #include "space_fossils/file_tree/storage.hxx"
@@ -23,7 +24,7 @@ namespace space_fossils::app {
 	{
 		std::filesystem::path inputPath;
 		std::filesystem::path treeOutputPath;
-		std::size_t depth = 1;
+		std::size_t depth = file_tree::DefaultScanDepth;
 		bool helpRequested = false;
 	};
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "space_fossils/file_tree/default_constants.hxx"
 #include "space_fossils/file_tree/name_pool.hxx"
 #include "space_fossils/file_tree/node_pool.hxx"
 #include "space_fossils/file_tree/storage_change.hxx"
@@ -13,8 +14,8 @@
 namespace space_fossils::core::file_tree {
 	struct StorageConfig
 	{
-		std::size_t nodeBlockSize = sizeof(Node) * 1024;
-		std::size_t nameBlockSize = sizeof(NativeChar) * 4096;
+		std::size_t nodeBlockSize = DefaultNodeBlockSize;
+		std::size_t nameBlockSize = DefaultNameBlockSize;
 	};
 
 	class Storage

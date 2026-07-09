@@ -1,7 +1,8 @@
 #pragma once
 
-#include "space_fossils/file_tree/tree_pool_bundle.hxx"
+#include "space_fossils/file_tree/default_constants.hxx"
 #include "space_fossils/file_tree/scan_request.hxx"
+#include "space_fossils/file_tree/tree_pool_bundle.hxx"
 
 #include <filesystem>
 
@@ -12,8 +13,8 @@
 namespace space_fossils::core::file_tree {
 	struct ScannerConfig
 	{
-		std::size_t nameBlockSize = sizeof(NativeChar) * 4096;
-		std::size_t nodeBlockSize = sizeof(Node) * 1024;
+		std::size_t nameBlockSize = DefaultNameBlockSize;
+		std::size_t nodeBlockSize = DefaultNodeBlockSize;
 	};
 
 	class Scanner
