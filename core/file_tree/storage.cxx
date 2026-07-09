@@ -1,4 +1,5 @@
 #include "space_fossils/file_tree/storage.hxx"
+#include "space_fossils/file_tree/tree_query.hxx"
 
 #include <optional>
 #include <utility>
@@ -16,39 +17,6 @@ namespace space_fossils::core::file_tree {
 	{
 		targetNamePool.MergeFrom(std::move(*subtree.namePool));
 		targetNodePool.MergeFrom(std::move(*subtree.nodePool));
-	}
-
-	std::size_t Storage::CountSubtreeNodes(const Node* node)
-	{
-		if (node == nullptr) {
-			return 0;
-		}
-
-		std::size_t count = 1;
-		const Node* child = node->firstChild;
-		while (child != nullptr) {
-			count += CountSubtreeNodes(child);
-			child = child->nextSibling;
-		}
-
-		return count;
-	}
-
-	bool Storage::ContainsNode(const Node* current, const Node* target)
-	{
-		while (current != nullptr) {
-			if (current == target) {
-				return true;
-			}
-
-			if (ContainsNode(current->firstChild, target)) {
-				return true;
-			}
-
-			current = current->nextSibling;
-		}
-
-		return false;
 	}
 
 	bool Storage::FindDirectChild(Node* parent, Node* child, Node*& previous)
@@ -252,7 +220,7 @@ namespace space_fossils::core::file_tree {
 
 	std::optional<AppliedChange> Storage::AttachChild(Node* parent, TreePoolBundle&& subtree)
 	{
-		if (parent == nullptr || !IsValidBundle(subtree) || !ContainsNode(root, parent)) {
+		if (parent == nullptr || !IsValidBundle(subtree) || !TreeQuery::ContainsInSiblingChain(root, parent)) {
 			return std::nullopt;
 		}
 
@@ -291,14 +259,14 @@ namespace space_fossils::core::file_tree {
 
 	std::optional<AppliedChange> Storage::ReplaceSubtree(Node* target, TreePoolBundle&& subtree)
 	{
-		if (target == nullptr || !IsValidBundle(subtree) || !ContainsNode(root, target)) {
+		if (target == nullptr || !IsValidBundle(subtree) || !TreeQuery::ContainsInSiblingChain(root, target)) {
 			return std::nullopt;
 		}
 
 		Node* replacement = subtree.root;
 		Node* parent = target->parent;
 		Node* nextSibling = target->nextSibling;
-		std::size_t removedNodesCount = CountSubtreeNodes(target);
+		std::size_t removedNodesCount = TreeQuery::CountSubtreeNodes(target);
 		std::size_t addedNodesCount = subtree.createdNodesCount;
 		FileSize removedSize = target->logicalSize;
 		FileSize addedSize = replacement->logicalSize;
@@ -344,11 +312,11 @@ namespace space_fossils::core::file_tree {
 
 	std::optional<AppliedChange> Storage::RemoveSubtree(Node* node)
 	{
-		if (node == nullptr || !ContainsNode(root, node)) {
+		if (node == nullptr || !TreeQuery::ContainsInSiblingChain(root, node)) {
 			return std::nullopt;
 		}
 
-		std::size_t removedNodesCount = CountSubtreeNodes(node);
+		std::size_t removedNodesCount = TreeQuery::CountSubtreeNodes(node);
 		Node* parent = node->parent;
 		FileSize removedSize = node->logicalSize;
 

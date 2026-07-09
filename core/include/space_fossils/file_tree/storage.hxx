@@ -56,8 +56,6 @@ namespace space_fossils::core::file_tree {
 
 		static bool IsValidBundle(const TreePoolBundle& subtree);
 		static void MergeBundlePools(NamePool& targetNamePool, NodePool& targetNodePool, TreePoolBundle& subtree);
-		static std::size_t CountSubtreeNodes(const Node* node);
-		static bool ContainsNode(const Node* current, const Node* target);
 		static bool FindDirectChild(Node* parent, Node* child, Node*& previous);
 		static EntryScanStatus ResolveDirectoryScanStatus(const Node& node);
 		static void ApplyLogicalSizeDelta(Node& node, FileSize removedSize, FileSize addedSize);
