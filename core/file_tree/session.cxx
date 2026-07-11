@@ -13,7 +13,7 @@ namespace space_fossils::core::file_tree {
 		RefreshAvailableChildren();
 	}
 
-	bool Session::IsValid() const
+	bool Session::IsValid()
 	{
 		RefreshIfStale();
 		return currentNode != nullptr;
@@ -29,13 +29,13 @@ namespace space_fossils::core::file_tree {
 		return storage.GetRoot();
 	}
 
-	const Node* Session::GetCurrentNode() const
+	const Node* Session::GetCurrentNode()
 	{
 		RefreshIfStale();
 		return currentNode;
 	}
 
-	NativeString Session::GetCurrentNativePath() const
+	NativeString Session::GetCurrentNativePath()
 	{
 		RefreshIfStale();
 		if (currentNode == nullptr) {
@@ -131,19 +131,19 @@ namespace space_fossils::core::file_tree {
 		return TrySelect(currentNode->parent);
 	}
 
-	const std::vector<const Node*>& Session::GetAvailableChildren() const
+	const std::vector<const Node*>& Session::GetAvailableChildren()
 	{
 		RefreshIfStale();
 		return availableChildren;
 	}
 
-	bool Session::HasTree() const
+	bool Session::HasTree()
 	{
 		RefreshIfStale();
 		return storage.GetRoot() != nullptr;
 	}
 
-	std::size_t Session::GetFocusedChildIndex() const
+	std::size_t Session::GetFocusedChildIndex()
 	{
 		RefreshIfStale();
 
@@ -192,7 +192,7 @@ namespace space_fossils::core::file_tree {
 		}
 	}
 
-	void Session::RefreshIfStale() const
+	void Session::RefreshIfStale()
 	{
 		if (knownStorageVersion == storage.GetVersion()) {
 			return;
@@ -216,7 +216,7 @@ namespace space_fossils::core::file_tree {
 		SelectKnownNode(closestNode);
 	}
 
-	void Session::SelectKnownNode(const Node* node) const
+	void Session::SelectKnownNode(const Node* node)
 	{
 		currentNode = node;
 		currentNativePath = TreeQuery::BuildNativePath(node);
@@ -225,7 +225,7 @@ namespace space_fossils::core::file_tree {
 		RefreshAvailableChildren();
 	}
 
-	void Session::RefreshAvailableChildren() const
+	void Session::RefreshAvailableChildren()
 	{
 		availableChildren = std::move(TreeQuery::CollectChildren(currentNode));
 	}

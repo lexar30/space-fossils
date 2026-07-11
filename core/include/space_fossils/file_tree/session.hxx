@@ -14,12 +14,12 @@ namespace space_fossils::core::file_tree {
 	public:
 		explicit Session(const Storage& storage);
 
-		bool IsValid() const;
+		bool IsValid();
 
 		const Storage& GetStorage() const;
 		const Node* GetRoot() const;
-		const Node* GetCurrentNode() const;
-		NativeString GetCurrentNativePath() const;
+		const Node* GetCurrentNode();
+		NativeString GetCurrentNativePath();
 		bool ResetToRoot();
 		bool TrySelect(const Node* node);
 		bool TrySelectChild(NativeStringView name);
@@ -27,23 +27,23 @@ namespace space_fossils::core::file_tree {
 		bool TrySelectFromRoot(NativeStringView nativePath);
 		bool TrySelectRelative(NativeStringView nativePath);
 		bool TrySelectParent();
-		const std::vector<const Node*>& GetAvailableChildren() const;
-		bool HasTree() const;
-		std::size_t GetFocusedChildIndex() const;
+		const std::vector<const Node*>& GetAvailableChildren();
+		bool HasTree();
+		std::size_t GetFocusedChildIndex();
 		bool TrySetFocusedChildIndex(std::size_t index);
 		void MoveFocusedChildIndex(std::ptrdiff_t delta);
 
 	private:
-		void RefreshIfStale() const;
-		void SelectKnownNode(const Node* node) const;
-		void RefreshAvailableChildren() const;
+		void RefreshIfStale();
+		void SelectKnownNode(const Node* node);
+		void RefreshAvailableChildren();
 
 	private:
 		const Storage& storage;
-		mutable const Node* currentNode = nullptr;
-		mutable std::vector<const Node*> availableChildren;
-		mutable NativeString currentNativePath;
-		mutable StorageVersion knownStorageVersion = 0;
-		mutable std::size_t focusedChildIndex = 0;
+		const Node* currentNode = nullptr;
+		std::vector<const Node*> availableChildren;
+		NativeString currentNativePath;
+		StorageVersion knownStorageVersion = 0;
+		std::size_t focusedChildIndex = 0;
 	};
 }
