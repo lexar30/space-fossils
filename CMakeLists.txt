@@ -45,6 +45,7 @@ target_sources(space_fossils_core
 		core/include/space_fossils/file_tree/tree_pool_bundle.hxx
 		core/include/space_fossils/file_tree/scanner.hxx
 		core/include/space_fossils/file_tree/scan_scheduler.hxx
+		core/include/space_fossils/file_tree/scan_coordinator_config.hxx
 		core/include/space_fossils/file_tree/scan_coordinator.hxx
 		core/include/space_fossils/file_tree/text_report_writer.hxx
 		core/include/space_fossils/file_tree/snapshot_reader.hxx

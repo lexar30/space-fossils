@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -249,5 +250,192 @@ namespace space_fossils::tests {
 
 		SF_ASSERT_EQ(session.GetCurrentNode() == newFolder, true);
 		AssertNativeStringEquals(session.GetCurrentNativePath(), TreeQuery::BuildNativePath(newFolder));
+	}
+
+	SF_TEST(file_tree_session, FocusedChildIndexStartsAtZeroAndWrapsForwardBackward)
+	{
+		Storage storage(MakeConfig());
+		NativeString rootName = MakeNativeString("root");
+		NativeString firstName = MakeNativeString("first");
+		NativeString secondName = MakeNativeString("second");
+		NativeString thirdName = MakeNativeString("third");
+
+		TreePoolBundle bundle = MakeSubtree(rootName);
+		AppendBundleChild(bundle, bundle.root, firstName);
+		AppendBundleChild(bundle, bundle.root, secondName);
+		AppendBundleChild(bundle, bundle.root, thirdName);
+		ApplyAdoptRoot(storage, std::move(bundle));
+
+		Session session(storage);
+
+		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 0);
+
+		session.MoveFocusedChildIndex(-1);
+		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 2);
+
+		session.MoveFocusedChildIndex(1);
+		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 0);
+
+		session.MoveFocusedChildIndex(4);
+		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 1);
+
+		session.MoveFocusedChildIndex(-5);
+		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 2);
+	}
+
+	SF_TEST(file_tree_session, MoveFocusedChildIndexDoesNothingWhenNoChildren)
+	{
+		Storage storage(MakeConfig());
+		NativeString rootName = MakeNativeString("root");
+
+		ApplyAdoptRoot(storage, MakeSubtree(rootName));
+
+		Session session(storage);
+		SF_ASSERT_EQ(session.GetAvailableChildren().empty(), true);
+
+		session.MoveFocusedChildIndex(1);
+		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 0);
+
+		session.MoveFocusedChildIndex(-1);
+		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 0);
+
+		session.MoveFocusedChildIndex(std::numeric_limits<std::ptrdiff_t>::min());
+		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 0);
+	}
+
+	SF_TEST(file_tree_session, MoveFocusedChildIndexHandlesExtremeNegativeDelta)
+	{
+		Storage storage(MakeConfig());
+		NativeString rootName = MakeNativeString("root");
+		NativeString firstName = MakeNativeString("first");
+		NativeString secondName = MakeNativeString("second");
+		NativeString thirdName = MakeNativeString("third");
+
+		TreePoolBundle bundle = MakeSubtree(rootName);
+		AppendBundleChild(bundle, bundle.root, firstName);
+		AppendBundleChild(bundle, bundle.root, secondName);
+		AppendBundleChild(bundle, bundle.root, thirdName);
+		ApplyAdoptRoot(storage, std::move(bundle));
+
+		Session session(storage);
+
+		session.MoveFocusedChildIndex(std::numeric_limits<std::ptrdiff_t>::min());
+
+		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 1);
+	}
+
+	SF_TEST(file_tree_session, MoveFocusedChildIndexHandlesExtremePositiveDelta)
+	{
+		Storage storage(MakeConfig());
+		NativeString rootName = MakeNativeString("root");
+		NativeString firstName = MakeNativeString("first");
+		NativeString secondName = MakeNativeString("second");
+		NativeString thirdName = MakeNativeString("third");
+
+		TreePoolBundle bundle = MakeSubtree(rootName);
+		AppendBundleChild(bundle, bundle.root, firstName);
+		AppendBundleChild(bundle, bundle.root, secondName);
+		AppendBundleChild(bundle, bundle.root, thirdName);
+		ApplyAdoptRoot(storage, std::move(bundle));
+
+		Session session(storage);
+
+		session.MoveFocusedChildIndex(std::numeric_limits<std::ptrdiff_t>::max());
+
+		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 1);
+	}
+
+	SF_TEST(file_tree_session, TrySetFocusedChildIndexAcceptsOnlyValidIndexes)
+	{
+		Storage storage(MakeConfig());
+		NativeString rootName = MakeNativeString("root");
+		NativeString firstName = MakeNativeString("first");
+		NativeString secondName = MakeNativeString("second");
+		NativeString thirdName = MakeNativeString("third");
+
+		TreePoolBundle bundle = MakeSubtree(rootName);
+		AppendBundleChild(bundle, bundle.root, firstName);
+		AppendBundleChild(bundle, bundle.root, secondName);
+		AppendBundleChild(bundle, bundle.root, thirdName);
+		ApplyAdoptRoot(storage, std::move(bundle));
+
+		Session session(storage);
+
+		SF_ASSERT_EQ(session.TrySetFocusedChildIndex(2), true);
+		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 2);
+
+		SF_ASSERT_EQ(session.TrySetFocusedChildIndex(3), false);
+		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 2);
+
+		SF_ASSERT_EQ(session.TrySetFocusedChildIndex(std::numeric_limits<std::size_t>::max()), false);
+		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 2);
+
+		SF_ASSERT_EQ(session.TrySetFocusedChildIndex(0), true);
+		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 0);
+	}
+
+	SF_TEST(file_tree_session, TrySetFocusedChildIndexDoesNothingWhenNoChildren)
+	{
+		Storage storage(MakeConfig());
+		NativeString rootName = MakeNativeString("root");
+
+		ApplyAdoptRoot(storage, MakeSubtree(rootName));
+
+		Session session(storage);
+		SF_ASSERT_EQ(session.GetAvailableChildren().empty(), true);
+
+		SF_ASSERT_EQ(session.TrySetFocusedChildIndex(0), false);
+		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 0);
+
+		SF_ASSERT_EQ(session.TrySetFocusedChildIndex(std::numeric_limits<std::size_t>::max()), false);
+		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 0);
+	}
+
+	SF_TEST(file_tree_session, SelectingNodeResetsFocusedChildIndex)
+	{
+		Storage storage(MakeConfig());
+		NativeString rootName = MakeNativeString("root");
+		NativeString firstName = MakeNativeString("first");
+		NativeString secondName = MakeNativeString("second");
+		NativeString thirdName = MakeNativeString("third");
+
+		TreePoolBundle bundle = MakeSubtree(rootName);
+		AppendBundleChild(bundle, bundle.root, firstName);
+		Node* second = AppendBundleChild(bundle, bundle.root, secondName);
+		AppendBundleChild(bundle, bundle.root, thirdName);
+		ApplyAdoptRoot(storage, std::move(bundle));
+
+		Session session(storage);
+		session.MoveFocusedChildIndex(2);
+		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 2);
+
+		SF_ASSERT_EQ(session.TrySelect(second), true);
+
+		SF_ASSERT_EQ(session.GetCurrentNode() == second, true);
+		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 0);
+	}
+
+	SF_TEST(file_tree_session, StorageVersionRefreshResetsFocusedChildIndex)
+	{
+		Storage storage(MakeConfig());
+		NativeString rootName = MakeNativeString("root");
+		NativeString firstName = MakeNativeString("first");
+		NativeString secondName = MakeNativeString("second");
+		NativeString thirdName = MakeNativeString("third");
+
+		TreePoolBundle bundle = MakeSubtree(rootName);
+		AppendBundleChild(bundle, bundle.root, firstName);
+		Node* second = AppendBundleChild(bundle, bundle.root, secondName);
+		AppendBundleChild(bundle, bundle.root, thirdName);
+		ApplyAdoptRoot(storage, std::move(bundle));
+
+		Session session(storage);
+		session.MoveFocusedChildIndex(2);
+		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 2);
+
+		SF_ASSERT_EQ(ApplyRemoveSubtree(storage, second), true);
+
+		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 0);
+		SF_ASSERT_EQ(session.GetAvailableChildren().size(), 2);
 	}
 }

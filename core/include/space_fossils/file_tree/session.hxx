@@ -29,6 +29,9 @@ namespace space_fossils::core::file_tree {
 		bool TrySelectParent();
 		const std::vector<const Node*>& GetAvailableChildren() const;
 		bool HasTree() const;
+		std::size_t GetFocusedChildIndex() const;
+		bool TrySetFocusedChildIndex(std::size_t index);
+		void MoveFocusedChildIndex(std::ptrdiff_t delta);
 
 	private:
 		void RefreshIfStale() const;
@@ -41,5 +44,6 @@ namespace space_fossils::core::file_tree {
 		mutable std::vector<const Node*> availableChildren;
 		mutable NativeString currentNativePath;
 		mutable StorageVersion knownStorageVersion = 0;
+		mutable std::size_t focusedChildIndex = 0;
 	};
 }

@@ -143,11 +143,62 @@ namespace space_fossils::core::file_tree {
 		return storage.GetRoot() != nullptr;
 	}
 
+	std::size_t Session::GetFocusedChildIndex() const
+	{
+		RefreshIfStale();
+
+		return focusedChildIndex;
+	}
+
+	bool Session::TrySetFocusedChildIndex(std::size_t index)
+	{
+		RefreshIfStale();
+
+		if (index >= availableChildren.size()) {
+			return false;
+		}
+
+		focusedChildIndex = index;
+		return true;
+	}
+
+	void Session::MoveFocusedChildIndex(std::ptrdiff_t delta)
+	{
+		RefreshIfStale();
+
+		if (delta == 0 || availableChildren.empty()) {
+			return;
+		}
+
+		const std::size_t limit = availableChildren.size();
+
+		if (delta > 0) {
+			const std::size_t shift = static_cast<std::size_t>(delta) % limit;
+			if (shift >= limit - focusedChildIndex) {
+				focusedChildIndex = shift - (limit - focusedChildIndex);
+			}
+			else {
+				focusedChildIndex += shift;
+			}
+		}
+		else {
+			const std::size_t shift = (static_cast<std::size_t>(-(delta + 1)) + 1) % limit;
+			if (shift > focusedChildIndex) {
+				focusedChildIndex = limit - (shift - focusedChildIndex);
+			}
+			else {
+				focusedChildIndex -= shift;
+			}
+		}
+	}
+
 	void Session::RefreshIfStale() const
 	{
 		if (knownStorageVersion == storage.GetVersion()) {
 			return;
 		}
+
+		focusedChildIndex = 0;
 
 		const Node* root = storage.GetRoot();
 		if (root == nullptr) {
@@ -170,6 +221,7 @@ namespace space_fossils::core::file_tree {
 		currentNode = node;
 		currentNativePath = TreeQuery::BuildNativePath(node);
 		knownStorageVersion = storage.GetVersion();
+		focusedChildIndex = 0;
 		RefreshAvailableChildren();
 	}
 

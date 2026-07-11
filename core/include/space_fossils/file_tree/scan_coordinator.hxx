@@ -1,6 +1,7 @@
 #pragma once
 
 #include <space_fossils/file_tree/default_constants.hxx>
+#include <space_fossils/file_tree/scan_coordinator_config.hxx>
 #include <space_fossils/file_tree/scan_scheduler.hxx>
 #include <space_fossils/file_tree/scanner.hxx>
 #include <space_fossils/file_tree/storage_change.hxx>
@@ -13,12 +14,6 @@
 
 namespace space_fossils::core::file_tree {
 	class Storage;
-
-	struct ScanCoordinatorConfig
-	{
-		std::filesystem::path rootPath;
-		std::size_t defaultScanDepth = UnlimitedScanDepth;
-	};
 
 	class ScanCoordinator
 	{
