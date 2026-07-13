@@ -1,5 +1,6 @@
-#include "space_fossils/file_tree/node_pool.hxx"
-#include "space_fossils/file_tree/node.hxx"
+#include "space_fossils/file_tree/memory/node_pool.hxx"
+
+#include "space_fossils/file_tree/model/node.hxx"
 #include "space_fossils_tests/micro_test_framework.hxx"
 
 #include <utility>
@@ -134,11 +135,20 @@ namespace space_fossils::tests {
 
 		SF_ASSERT_EQ(target.GetLiveNodesCount(), 1);
 		SF_ASSERT_EQ(target.GetBlocksCount(), 1);
+		SF_ASSERT_EQ(node->logicalSize, 7);
+		// MergeFrom defines the moved-from source as empty.
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable: 26800)
+#endif
 		SF_ASSERT_EQ(source.GetLiveNodesCount(), 0);
 		SF_ASSERT_EQ(source.GetBlocksCount(), 0);
 		SF_ASSERT_EQ(source.GetUsedBytes(), 0);
 		SF_ASSERT_EQ(node->logicalSize, 7);
 		SF_ASSERT_EQ(source.Destroy(node), false);
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 		SF_ASSERT_EQ(target.Destroy(node), true);
 		SF_ASSERT_EQ(target.GetLiveNodesCount(), 0);
 	}
@@ -159,12 +169,22 @@ namespace space_fossils::tests {
 
 		SF_ASSERT_EQ(target.GetLiveNodesCount(), 2);
 		SF_ASSERT_EQ(target.GetBlocksCount(), 2);
+		SF_ASSERT_EQ(targetNode->logicalSize, 11);
+		SF_ASSERT_EQ(sourceNode->logicalSize, 22);
+		// MergeFrom defines the moved-from source as empty.
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable: 26800)
+#endif
 		SF_ASSERT_EQ(source.GetLiveNodesCount(), 0);
 		SF_ASSERT_EQ(source.GetBlocksCount(), 0);
 		SF_ASSERT_EQ(source.GetUsedBytes(), 0);
 		SF_ASSERT_EQ(targetNode->logicalSize, 11);
 		SF_ASSERT_EQ(sourceNode->logicalSize, 22);
 		SF_ASSERT_EQ(source.Destroy(sourceNode), false);
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 		SF_ASSERT_EQ(target.Destroy(targetNode), true);
 		SF_ASSERT_EQ(target.Destroy(sourceNode), true);
 		SF_ASSERT_EQ(target.GetLiveNodesCount(), 0);

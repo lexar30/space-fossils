@@ -1,4 +1,5 @@
-#include "space_fossils/file_tree/scanner.hxx"
+#include "space_fossils/file_tree/scan/scanner.hxx"
+
 #include "space_fossils_tests/micro_test_framework.hxx"
 
 #include <cstddef>
@@ -9,6 +10,7 @@
 namespace space_fossils::tests {
 	namespace {
 		using namespace space_fossils::core::file_tree;
+		using namespace space_fossils::core::file_tree::scan;
 
 		constexpr FileSize FixtureRootFileSize = 100;
 		constexpr FileSize FixtureFirstDirectorySize = 300;
@@ -29,6 +31,16 @@ namespace space_fossils::tests {
 		void AssertNameEquals(const Node& node, const char* expectedValue)
 		{
 			NativeString expectedName = MakeNativeString(expectedValue);
+			NativeStringView actualName = ToStringView(node.name);
+
+			SF_ASSERT_EQ(actualName.size(), expectedName.size());
+			for (std::size_t index = 0; index < expectedName.size(); ++index) {
+				SF_ASSERT_EQ(actualName[index] == expectedName[index], true);
+			}
+		}
+
+		void AssertNameEquals(const Node& node, const NativeString& expectedName)
+		{
 			NativeStringView actualName = ToStringView(node.name);
 
 			SF_ASSERT_EQ(actualName.size(), expectedName.size());
@@ -95,11 +107,11 @@ namespace space_fossils::tests {
 		{
 			Scanner scanner;
 
-			ScanRequest request;
-			request.path = std::filesystem::path(path);
-			request.maxDepth = maxDepth;
+			ScanInput input;
+			input.path = std::filesystem::path(path);
+			input.maxDepth = maxDepth;
 
-			return scanner.Scan(request);
+			return scanner.Scan(input);
 		}
 
 		void AssertSingleRootBundle(const TreePoolBundle& bundle)
@@ -164,16 +176,72 @@ namespace space_fossils::tests {
 		config.nodeBlockSize = 0;
 		Scanner scanner(config);
 
-		ScanRequest request;
-		request.path = std::filesystem::path(SPACE_FOSSILS_FILE_SCANNER_FIXTURE_ROOT);
-		request.maxDepth = 1;
+		ScanInput input;
+		input.path = std::filesystem::path(SPACE_FOSSILS_FILE_SCANNER_FIXTURE_ROOT);
+		input.maxDepth = 1;
 
-		TreePoolBundle bundle = scanner.Scan(request);
+		TreePoolBundle bundle = scanner.Scan(input);
 
 		SF_ASSERT_EQ(bundle.namePool != nullptr, true);
 		SF_ASSERT_EQ(bundle.nodePool != nullptr, true);
 		SF_ASSERT_EQ(bundle.root == nullptr, true);
 		SF_ASSERT_EQ(bundle.createdNodesCount, 0);
+	}
+
+	SF_TEST(file_tree_scanner, ZeroNameBlockSizeReturnsEmptyBundle)
+	{
+		ScannerConfig config;
+		config.nameBlockSize = 0;
+		Scanner scanner(config);
+
+		ScanInput input;
+		input.path = std::filesystem::path(SPACE_FOSSILS_FILE_SCANNER_FIXTURE_ROOT);
+		input.maxDepth = 1;
+
+		TreePoolBundle bundle = scanner.Scan(input);
+
+		SF_ASSERT_EQ(bundle.namePool != nullptr, true);
+		SF_ASSERT_EQ(bundle.nodePool != nullptr, true);
+		SF_ASSERT_EQ(bundle.root == nullptr, true);
+		SF_ASSERT_EQ(bundle.createdNodesCount, 0);
+	}
+
+	SF_TEST(file_tree_scanner, ZeroNodeBlockSizeReturnsEmptyBundle)
+	{
+		ScannerConfig config;
+		config.nodeBlockSize = 0;
+		Scanner scanner(config);
+
+		ScanInput input;
+		input.path = std::filesystem::path(SPACE_FOSSILS_FILE_SCANNER_FIXTURE_ROOT);
+		input.maxDepth = 1;
+
+		TreePoolBundle bundle = scanner.Scan(input);
+
+		SF_ASSERT_EQ(bundle.namePool != nullptr, true);
+		SF_ASSERT_EQ(bundle.nodePool != nullptr, true);
+		SF_ASSERT_EQ(bundle.root == nullptr, true);
+		SF_ASSERT_EQ(bundle.createdNodesCount, 0);
+	}
+
+	SF_TEST(file_tree_scanner, RootPathUsesFullNativePathWhenFilenameIsEmpty)
+	{
+		const std::filesystem::path rootPath = std::filesystem::current_path().root_path();
+		SF_ASSERT_EQ(rootPath.empty(), false);
+
+		Scanner scanner;
+		ScanInput input;
+		input.path = rootPath;
+		input.maxDepth = 0;
+
+		TreePoolBundle bundle = scanner.Scan(input);
+
+		AssertSingleRootBundle(bundle);
+		AssertNameEquals(*bundle.root, rootPath.native());
+		SF_ASSERT_EQ(bundle.root->entryType, EntryType::Directory);
+		SF_ASSERT_EQ(bundle.root->entryStatus, EntryStatus::Accessible);
+		SF_ASSERT_EQ(bundle.root->scanStatus, EntryScanStatus::Pending);
+		SF_ASSERT_EQ(bundle.root->logicalSize, DefaultFileSize);
 	}
 
 	SF_TEST(file_tree_scanner, SymlinkIsLeafAndDoesNotTraverseTarget)
@@ -201,11 +269,11 @@ namespace space_fossils::tests {
 		}
 
 		Scanner scanner;
-		ScanRequest request;
-		request.path = linkPath;
-		request.maxDepth = 3;
+		ScanInput input;
+		input.path = linkPath;
+		input.maxDepth = 3;
 
-		TreePoolBundle bundle = scanner.Scan(request);
+		TreePoolBundle bundle = scanner.Scan(input);
 
 		AssertSingleRootBundle(bundle);
 		AssertNameEquals(*bundle.root, "link");

@@ -1,6 +1,7 @@
-#include "space_fossils/file_tree/node.hxx"
-#include "space_fossils/file_tree/snapshot_reader.hxx"
-#include "space_fossils/file_tree/snapshot_writer.hxx"
+#include "space_fossils/file_tree/snapshot/reader.hxx"
+
+#include "space_fossils/file_tree/model/node.hxx"
+#include "space_fossils/file_tree/snapshot/writer.hxx"
 #include "space_fossils/version.hxx"
 #include "space_fossils_tests/micro_test_framework.hxx"
 
@@ -14,6 +15,7 @@ namespace space_fossils::tests {
 	namespace {
 		using namespace space_fossils::core;
 		using namespace space_fossils::core::file_tree;
+		using namespace space_fossils::core::file_tree::snapshot;
 
 		NativeString MakeNativeString(const char* value)
 		{
@@ -66,17 +68,36 @@ namespace space_fossils::tests {
 
 		std::size_t SnapshotFormatVersionOffset()
 		{
-			return SnapshotWriter::MagicBytes.size();
+			return Writer::MagicBytes.size();
 		}
 
 		std::size_t NativeCharSizeOffset(const std::string& bytes)
 		{
-			std::size_t offset = SnapshotWriter::MagicBytes.size();
+			std::size_t offset = Writer::MagicBytes.size();
 			offset += sizeof(std::uint32_t);
 
 			const std::uint64_t applicationVersionLength = ReadValueAt<std::uint64_t>(bytes, offset);
 			offset += static_cast<std::size_t>(applicationVersionLength);
 			offset += sizeof(std::uint64_t);
+
+			return offset;
+		}
+
+		std::size_t BodyOffset(const std::string& bytes)
+		{
+			return NativeCharSizeOffset(bytes) + sizeof(std::uint8_t);
+		}
+
+		std::size_t RootChildCountOffset(const std::string& bytes)
+		{
+			std::size_t offset = BodyOffset(bytes);
+
+			const std::uint64_t nameByteLength = ReadValueAt<std::uint64_t>(bytes, offset);
+			offset += static_cast<std::size_t>(nameByteLength);
+			offset += sizeof(std::uint64_t);
+			offset += sizeof(std::uint8_t);
+			offset += sizeof(std::uint8_t);
+			offset += sizeof(std::uint8_t);
 
 			return offset;
 		}
@@ -130,7 +151,7 @@ namespace space_fossils::tests {
 
 		std::string WriteSnapshot(const Node& root)
 		{
-			SnapshotWriter writer;
+			Writer writer;
 			std::ostringstream out(std::ios::out | std::ios::binary);
 
 			const bool written = writer.TryWriteSnapshot(out, &root);
@@ -141,7 +162,7 @@ namespace space_fossils::tests {
 
 		std::optional<TreePoolBundle> ReadSnapshot(const std::string& bytes)
 		{
-			SnapshotReader reader;
+			Reader reader;
 			std::istringstream in(bytes, std::ios::in | std::ios::binary);
 
 			return reader.TryReadSnapshot(in);
@@ -192,6 +213,13 @@ namespace space_fossils::tests {
 			SF_ASSERT_EQ(second->firstChild == nullptr, true);
 			SF_ASSERT_EQ(second->nextSibling == nullptr, true);
 		}
+	}
+
+	SF_TEST(file_tree_snapshot_reader, RejectsEmptyStream)
+	{
+		std::optional<TreePoolBundle> bundle = ReadSnapshot({});
+
+		SF_ASSERT_EQ(bundle.has_value(), false);
 	}
 
 	SF_TEST(file_tree_snapshot_reader, ReadsWriterSnapshotIntoBundle)
@@ -247,6 +275,49 @@ namespace space_fossils::tests {
 		std::string bytes = WriteSnapshot(tree.root);
 		SF_ASSERT_EQ(bytes.empty(), false);
 		bytes.pop_back();
+
+		std::optional<TreePoolBundle> bundle = ReadSnapshot(bytes);
+
+		SF_ASSERT_EQ(bundle.has_value(), false);
+	}
+
+	SF_TEST(file_tree_snapshot_reader, RejectsUnalignedNameByteLength)
+	{
+		if constexpr (sizeof(NativeChar) > 1) {
+			TestTree tree;
+			std::string bytes = WriteSnapshot(tree.root);
+			const std::uint64_t invalidNameByteLength = static_cast<std::uint64_t>(sizeof(NativeChar) + 1);
+			SF_ASSERT_EQ(invalidNameByteLength % sizeof(NativeChar) != 0, true);
+			WriteValueAt(bytes, BodyOffset(bytes), invalidNameByteLength);
+
+			std::optional<TreePoolBundle> bundle = ReadSnapshot(bytes);
+
+			SF_ASSERT_EQ(bundle.has_value(), false);
+		}
+		else {
+			SF_ASSERT_EQ(sizeof(NativeChar), 1);
+		}
+	}
+
+	SF_TEST(file_tree_snapshot_reader, RejectsNameByteLengthPastEndOfStream)
+	{
+		TestTree tree;
+		std::string bytes = WriteSnapshot(tree.root);
+		const std::uint64_t nameCharactersPastEnd = static_cast<std::uint64_t>(bytes.size() / sizeof(NativeChar) + 1);
+		const std::uint64_t tooLargeNameByteLength = nameCharactersPastEnd * sizeof(NativeChar);
+		WriteValueAt(bytes, BodyOffset(bytes), tooLargeNameByteLength);
+
+		std::optional<TreePoolBundle> bundle = ReadSnapshot(bytes);
+
+		SF_ASSERT_EQ(bundle.has_value(), false);
+	}
+
+	SF_TEST(file_tree_snapshot_reader, RejectsMissingDeclaredChildRecords)
+	{
+		TestTree tree;
+		std::string bytes = WriteSnapshot(tree.root);
+		const std::uint64_t tooManyChildren = 3;
+		WriteValueAt(bytes, RootChildCountOffset(bytes), tooManyChildren);
 
 		std::optional<TreePoolBundle> bundle = ReadSnapshot(bytes);
 

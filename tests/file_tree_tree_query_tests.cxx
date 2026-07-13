@@ -1,5 +1,6 @@
-#include "space_fossils/file_tree/node.hxx"
-#include "space_fossils/file_tree/tree_query.hxx"
+#include "space_fossils/file_tree/query/tree_query.hxx"
+
+#include "space_fossils/file_tree/model/node.hxx"
 #include "space_fossils_tests/micro_test_framework.hxx"
 
 #include <cstdint>
@@ -82,6 +83,7 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(TreeQuery::CollectPathComponents(nullptr).empty(), true);
 		SF_ASSERT_EQ(TreeQuery::GetDepth(nullptr), 0);
 		SF_ASSERT_EQ(TreeQuery::CollectChildren(nullptr).empty(), true);
+		SF_ASSERT_EQ(TreeQuery::NodeNameEquals(nullptr, missingName), false);
 		SF_ASSERT_EQ(TreeQuery::FindChildByName(nullptr, missingName) == nullptr, true);
 		SF_ASSERT_EQ(TreeQuery::FindNodeByPath(nullptr, missingName) == nullptr, true);
 		SF_ASSERT_EQ(TreeQuery::FindClosestNodeByPath(nullptr, missingName) == nullptr, true);
@@ -229,6 +231,20 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(children[1] == &second, true);
 		SF_ASSERT_EQ(children[2] == &third, true);
 		SF_ASSERT_EQ(TreeQuery::CollectChildren(&third).empty(), true);
+	}
+
+	SF_TEST(file_tree_tree_query, NodeNameEqualsComparesNameText)
+	{
+		NativeString nodeName = MakeNativeString("same-name");
+		NativeString searchName = MakeNativeString("same-name");
+		NativeString missingName = MakeNativeString("missing");
+
+		Node node;
+		node.name = MakeNameRef(nodeName);
+
+		SF_ASSERT_EQ(TreeQuery::NodeNameEquals(&node, searchName), true);
+		SF_ASSERT_EQ(TreeQuery::NodeNameEquals(&node, missingName), false);
+		SF_ASSERT_EQ(TreeQuery::NodeNameEquals(&node, {}), false);
 	}
 
 	SF_TEST(file_tree_tree_query, FindChildByNameComparesNameText)

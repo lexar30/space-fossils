@@ -1,6 +1,7 @@
-#include "space_fossils/file_tree/session.hxx"
-#include "space_fossils/file_tree/storage.hxx"
-#include "space_fossils/file_tree/tree_query.hxx"
+#include "space_fossils/file_tree/session/session.hxx"
+
+#include "space_fossils/file_tree/storage/storage.hxx"
+#include "space_fossils/file_tree/query/tree_query.hxx"
 #include "space_fossils_tests/micro_test_framework.hxx"
 
 #include <cstddef>
@@ -16,7 +17,7 @@ namespace space_fossils::tests {
 
 		StorageConfig MakeConfig()
 		{
-			return StorageConfig {
+			return StorageConfig{
 				sizeof(Node) * 4,
 				sizeof(NativeChar) * 32
 			};
@@ -123,6 +124,11 @@ namespace space_fossils::tests {
 				SF_ASSERT_EQ(actual[index] == expected[index], true);
 			}
 		}
+
+		const Node* GetCurrentNode(Session& session)
+		{
+			return session.GetCurrentNodeHandle().cachedNode;
+		}
 	}
 
 	SF_TEST(file_tree_session, StartsAtRootAndCachesAvailableChildren)
@@ -138,13 +144,13 @@ namespace space_fossils::tests {
 		Session session(storage);
 
 		SF_ASSERT_EQ(session.IsValid(), true);
-		SF_ASSERT_EQ(session.GetCurrentNode() == root, true);
+		SF_ASSERT_EQ(GetCurrentNode(session) == root, true);
 		AssertNativeStringEquals(session.GetCurrentNativePath(), TreeQuery::BuildNativePath(root));
 		SF_ASSERT_EQ(session.GetAvailableChildren().size(), 1);
 		SF_ASSERT_EQ(session.GetAvailableChildren()[0] == bundleChild, true);
 	}
 
-	SF_TEST(file_tree_session, TrySelectFromRootAcceptsFullNativePath)
+	SF_TEST(file_tree_session, TrySetCurrentNodeAcceptsNodeFromCurrentStorage)
 	{
 		Storage storage(MakeConfig());
 		NativeString rootName = MakeNativeString("C:");
@@ -157,10 +163,10 @@ namespace space_fossils::tests {
 		ApplyAdoptRoot(storage, std::move(bundle));
 
 		Session session(storage);
-		NativeString filePath = TreeQuery::BuildNativePath(file);
 
-		SF_ASSERT_EQ(session.TrySelectFromRoot(filePath), true);
-		SF_ASSERT_EQ(session.GetCurrentNode() == file, true);
+		SF_ASSERT_EQ(session.TrySetCurrentNode(file), true);
+		SF_ASSERT_EQ(GetCurrentNode(session) == file, true);
+		AssertNativeStringEquals(session.GetCurrentNativePath(), TreeQuery::BuildNativePath(file));
 	}
 
 	SF_TEST(file_tree_session, RestoresClosestNodeWhenSelectedPathLosesMiddleComponent)
@@ -178,16 +184,16 @@ namespace space_fossils::tests {
 		ApplyAdoptRoot(storage, std::move(bundle));
 
 		Session session(storage);
-		SF_ASSERT_EQ(session.TrySelectFromRoot(TreeQuery::BuildNativePath(folderThree)), true);
+		SF_ASSERT_EQ(session.TrySetCurrentNode(folderThree), true);
 
 		SF_ASSERT_EQ(ApplyRemoveSubtree(storage, folderTwo), true);
 
-		SF_ASSERT_EQ(session.GetCurrentNode() == folderOne, true);
+		SF_ASSERT_EQ(GetCurrentNode(session) == folderOne, true);
 		AssertNativeStringEquals(session.GetCurrentNativePath(), TreeQuery::BuildNativePath(folderOne));
 		SF_ASSERT_EQ(session.GetAvailableChildren().empty(), true);
 	}
 
-	SF_TEST(file_tree_session, ResetToRootRecoversAfterStorageVersionChanges)
+	SF_TEST(file_tree_session, SyncFallsBackToRootWhenCachedPathDoesNotExistAfterRootReplacement)
 	{
 		Storage storage(MakeConfig());
 		NativeString oldRootName = MakeNativeString("old-root");
@@ -199,12 +205,11 @@ namespace space_fossils::tests {
 		ApplyAdoptRoot(storage, std::move(oldBundle));
 
 		Session session(storage);
-		SF_ASSERT_EQ(session.TrySelect(oldChild), true);
+		SF_ASSERT_EQ(session.TrySetCurrentNode(oldChild), true);
 
 		Node* newRoot = ApplyAdoptRoot(storage, MakeSubtree(newRootName));
 
-		SF_ASSERT_EQ(session.ResetToRoot(), true);
-		SF_ASSERT_EQ(session.GetCurrentNode() == newRoot, true);
+		SF_ASSERT_EQ(GetCurrentNode(session) == newRoot, true);
 		AssertNativeStringEquals(session.GetCurrentNativePath(), TreeQuery::BuildNativePath(newRoot));
 	}
 
@@ -223,7 +228,7 @@ namespace space_fossils::tests {
 
 		SF_ASSERT_EQ(session.IsValid(), false);
 		SF_ASSERT_EQ(session.HasTree(), false);
-		SF_ASSERT_EQ(session.GetCurrentNode() == nullptr, true);
+		SF_ASSERT_EQ(GetCurrentNode(session) == nullptr, true);
 		SF_ASSERT_EQ(session.GetCurrentNativePath().empty(), true);
 		SF_ASSERT_EQ(session.GetAvailableChildren().empty(), true);
 	}
@@ -239,110 +244,17 @@ namespace space_fossils::tests {
 		ApplyAdoptRoot(storage, std::move(oldBundle));
 
 		Session session(storage);
-		SF_ASSERT_EQ(session.TrySelect(oldFolder), true);
+		SF_ASSERT_EQ(session.TrySetCurrentNode(oldFolder), true);
 
 		storage.Clear();
-		SF_ASSERT_EQ(session.GetCurrentNode() == nullptr, true);
+		SF_ASSERT_EQ(GetCurrentNode(session) == nullptr, true);
 
 		TreePoolBundle newBundle = MakeSubtree(rootName);
 		Node* newFolder = AppendBundleChild(newBundle, newBundle.root, folderName);
 		ApplyAdoptRoot(storage, std::move(newBundle));
 
-		SF_ASSERT_EQ(session.GetCurrentNode() == newFolder, true);
+		SF_ASSERT_EQ(GetCurrentNode(session) == newFolder, true);
 		AssertNativeStringEquals(session.GetCurrentNativePath(), TreeQuery::BuildNativePath(newFolder));
-	}
-
-	SF_TEST(file_tree_session, FocusedChildIndexStartsAtZeroAndWrapsForwardBackward)
-	{
-		Storage storage(MakeConfig());
-		NativeString rootName = MakeNativeString("root");
-		NativeString firstName = MakeNativeString("first");
-		NativeString secondName = MakeNativeString("second");
-		NativeString thirdName = MakeNativeString("third");
-
-		TreePoolBundle bundle = MakeSubtree(rootName);
-		AppendBundleChild(bundle, bundle.root, firstName);
-		AppendBundleChild(bundle, bundle.root, secondName);
-		AppendBundleChild(bundle, bundle.root, thirdName);
-		ApplyAdoptRoot(storage, std::move(bundle));
-
-		Session session(storage);
-
-		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 0);
-
-		session.MoveFocusedChildIndex(-1);
-		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 2);
-
-		session.MoveFocusedChildIndex(1);
-		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 0);
-
-		session.MoveFocusedChildIndex(4);
-		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 1);
-
-		session.MoveFocusedChildIndex(-5);
-		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 2);
-	}
-
-	SF_TEST(file_tree_session, MoveFocusedChildIndexDoesNothingWhenNoChildren)
-	{
-		Storage storage(MakeConfig());
-		NativeString rootName = MakeNativeString("root");
-
-		ApplyAdoptRoot(storage, MakeSubtree(rootName));
-
-		Session session(storage);
-		SF_ASSERT_EQ(session.GetAvailableChildren().empty(), true);
-
-		session.MoveFocusedChildIndex(1);
-		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 0);
-
-		session.MoveFocusedChildIndex(-1);
-		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 0);
-
-		session.MoveFocusedChildIndex(std::numeric_limits<std::ptrdiff_t>::min());
-		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 0);
-	}
-
-	SF_TEST(file_tree_session, MoveFocusedChildIndexHandlesExtremeNegativeDelta)
-	{
-		Storage storage(MakeConfig());
-		NativeString rootName = MakeNativeString("root");
-		NativeString firstName = MakeNativeString("first");
-		NativeString secondName = MakeNativeString("second");
-		NativeString thirdName = MakeNativeString("third");
-
-		TreePoolBundle bundle = MakeSubtree(rootName);
-		AppendBundleChild(bundle, bundle.root, firstName);
-		AppendBundleChild(bundle, bundle.root, secondName);
-		AppendBundleChild(bundle, bundle.root, thirdName);
-		ApplyAdoptRoot(storage, std::move(bundle));
-
-		Session session(storage);
-
-		session.MoveFocusedChildIndex(std::numeric_limits<std::ptrdiff_t>::min());
-
-		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 1);
-	}
-
-	SF_TEST(file_tree_session, MoveFocusedChildIndexHandlesExtremePositiveDelta)
-	{
-		Storage storage(MakeConfig());
-		NativeString rootName = MakeNativeString("root");
-		NativeString firstName = MakeNativeString("first");
-		NativeString secondName = MakeNativeString("second");
-		NativeString thirdName = MakeNativeString("third");
-
-		TreePoolBundle bundle = MakeSubtree(rootName);
-		AppendBundleChild(bundle, bundle.root, firstName);
-		AppendBundleChild(bundle, bundle.root, secondName);
-		AppendBundleChild(bundle, bundle.root, thirdName);
-		ApplyAdoptRoot(storage, std::move(bundle));
-
-		Session session(storage);
-
-		session.MoveFocusedChildIndex(std::numeric_limits<std::ptrdiff_t>::max());
-
-		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 1);
 	}
 
 	SF_TEST(file_tree_session, TrySetFocusedChildIndexAcceptsOnlyValidIndexes)
@@ -406,12 +318,12 @@ namespace space_fossils::tests {
 		ApplyAdoptRoot(storage, std::move(bundle));
 
 		Session session(storage);
-		session.MoveFocusedChildIndex(2);
+		SF_ASSERT_EQ(session.TrySetFocusedChildIndex(2), true);
 		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 2);
 
-		SF_ASSERT_EQ(session.TrySelect(second), true);
+		SF_ASSERT_EQ(session.TrySetCurrentNode(second), true);
 
-		SF_ASSERT_EQ(session.GetCurrentNode() == second, true);
+		SF_ASSERT_EQ(GetCurrentNode(session) == second, true);
 		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 0);
 	}
 
@@ -430,7 +342,7 @@ namespace space_fossils::tests {
 		ApplyAdoptRoot(storage, std::move(bundle));
 
 		Session session(storage);
-		session.MoveFocusedChildIndex(2);
+		SF_ASSERT_EQ(session.TrySetFocusedChildIndex(2), true);
 		SF_ASSERT_EQ(session.GetFocusedChildIndex(), 2);
 
 		SF_ASSERT_EQ(ApplyRemoveSubtree(storage, second), true);

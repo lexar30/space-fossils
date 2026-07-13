@@ -1,4 +1,5 @@
-#include "space_fossils/file_tree/name_pool.hxx"
+#include "space_fossils/file_tree/memory/name_pool.hxx"
+
 #include "space_fossils_tests/micro_test_framework.hxx"
 
 #include <utility>
@@ -130,9 +131,17 @@ namespace space_fossils::tests {
 
 		SF_ASSERT_EQ(target.GetBlocksCount(), 1);
 		SF_ASSERT_EQ(target.GetAllocatedBytes(), 16);
+		// MergeFrom defines the moved-from source as empty.
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable: 26800)
+#endif
 		SF_ASSERT_EQ(source.GetBlocksCount(), 0);
 		SF_ASSERT_EQ(source.GetAllocatedBytes(), 0);
 		SF_ASSERT_EQ(source.GetUsedBytes(), 0);
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 		SF_ASSERT_EQ(ToStringView(ref)[0] == static_cast<NativeChar>('m'), true);
 		SF_ASSERT_EQ(ToStringView(ref).size(), name.size());
 	}
@@ -150,9 +159,17 @@ namespace space_fossils::tests {
 		target.MergeFrom(std::move(source));
 
 		SF_ASSERT_EQ(target.GetBlocksCount(), 2);
+		// MergeFrom defines the moved-from source as empty.
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable: 26800)
+#endif
 		SF_ASSERT_EQ(source.GetBlocksCount(), 0);
 		SF_ASSERT_EQ(source.GetAllocatedBytes(), 0);
 		SF_ASSERT_EQ(source.GetUsedBytes(), 0);
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 		SF_ASSERT_EQ(ToStringView(targetRef).size(), targetName.size());
 		SF_ASSERT_EQ(ToStringView(sourceRef).size(), sourceName.size());
 		SF_ASSERT_EQ(ToStringView(targetRef)[0] == static_cast<NativeChar>('t'), true);

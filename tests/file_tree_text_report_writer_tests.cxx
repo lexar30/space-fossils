@@ -1,5 +1,6 @@
-#include "space_fossils/file_tree/node.hxx"
-#include "space_fossils/file_tree/text_report_writer.hxx"
+#include "space_fossils/file_tree/report/text_writer.hxx"
+
+#include "space_fossils/file_tree/model/node.hxx"
 #include "space_fossils_tests/micro_test_framework.hxx"
 
 #include <cstdint>
@@ -9,6 +10,7 @@
 namespace space_fossils::tests {
 	namespace {
 		using namespace space_fossils::core::file_tree;
+		using namespace space_fossils::core::file_tree::report;
 
 		NativeString MakeNativeString(const char* value)
 		{
@@ -60,7 +62,7 @@ namespace space_fossils::tests {
 		first.firstChild = &firstChild;
 		first.nextSibling = &second;
 
-		TextReportWriter writer;
+		TextWriter writer;
 		std::ostringstream out;
 
 		const bool written = writer.WriteTreeReport(out, root);
@@ -72,5 +74,35 @@ namespace space_fossils::tests {
 			"|   L-- inside.txt (10)\n"
 			"L-- folder-b (50)\n"
 		));
+	}
+
+	SF_TEST(file_tree_text_report_writer, WritesEmptyNameAsBlankName)
+	{
+		Node root;
+		root.logicalSize = 7;
+
+		TextWriter writer;
+		std::ostringstream out;
+
+		const bool written = writer.WriteTreeReport(out, root);
+
+		SF_ASSERT_EQ(written, true);
+		SF_ASSERT_EQ(out.str(), std::string(" (7)\n"));
+	}
+
+	SF_TEST(file_tree_text_report_writer, ReturnsFalseWhenStreamAlreadyFailed)
+	{
+		NativeString rootName = MakeNativeString("root");
+
+		Node root;
+		root.name = MakeNameRef(rootName);
+
+		TextWriter writer;
+		std::ostringstream out;
+		out.setstate(std::ios::badbit);
+
+		const bool written = writer.WriteTreeReport(out, root);
+
+		SF_ASSERT_EQ(written, false);
 	}
 }

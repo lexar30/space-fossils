@@ -1,5 +1,6 @@
-#include "space_fossils/file_tree/node.hxx"
-#include "space_fossils/file_tree/snapshot_writer.hxx"
+#include "space_fossils/file_tree/snapshot/writer.hxx"
+
+#include "space_fossils/file_tree/model/node.hxx"
 #include "space_fossils/version.hxx"
 #include "space_fossils_tests/micro_test_framework.hxx"
 
@@ -7,12 +8,14 @@
 #include <cstdint>
 #include <cstring>
 #include <sstream>
+#include <streambuf>
 #include <string>
 
 namespace space_fossils::tests {
 	namespace {
 		using namespace space_fossils::core;
 		using namespace space_fossils::core::file_tree;
+		using namespace space_fossils::core::file_tree::snapshot;
 
 		NativeString MakeNativeString(const char* value)
 		{
@@ -77,10 +80,10 @@ namespace space_fossils::tests {
 			std::uint64_t timestampBefore,
 			std::uint64_t timestampAfter)
 		{
-			const std::string magic = ReadBytes(bytes, offset, SnapshotWriter::MagicBytes.size());
-			SF_ASSERT_EQ(magic.size(), SnapshotWriter::MagicBytes.size());
-			for (std::size_t index = 0; index < SnapshotWriter::MagicBytes.size(); ++index) {
-				SF_ASSERT_EQ(magic[index], SnapshotWriter::MagicBytes[index]);
+			const std::string magic = ReadBytes(bytes, offset, Writer::MagicBytes.size());
+			SF_ASSERT_EQ(magic.size(), Writer::MagicBytes.size());
+			for (std::size_t index = 0; index < Writer::MagicBytes.size(); ++index) {
+				SF_ASSERT_EQ(magic[index], Writer::MagicBytes[index]);
 			}
 
 			const std::uint32_t snapshotFormatVersion = ReadValue<std::uint32_t>(bytes, offset);
@@ -136,6 +139,45 @@ namespace space_fossils::tests {
 
 			return record;
 		}
+
+		class FailingAfterBytesBuffer : public std::streambuf
+		{
+		public:
+			explicit FailingAfterBytesBuffer(std::size_t bytesBeforeFailure)
+				: remainingBytes(bytesBeforeFailure)
+			{
+			}
+
+		protected:
+			std::streamsize xsputn(const char*, std::streamsize count) override
+			{
+				if (remainingBytes == 0) {
+					return 0;
+				}
+
+				const std::size_t requestedBytes = static_cast<std::size_t>(count);
+				const std::size_t writtenBytes = requestedBytes < remainingBytes ? requestedBytes : remainingBytes;
+				remainingBytes -= writtenBytes;
+				return static_cast<std::streamsize>(writtenBytes);
+			}
+
+			int_type overflow(int_type ch) override
+			{
+				if (traits_type::eq_int_type(ch, traits_type::eof())) {
+					return traits_type::not_eof(ch);
+				}
+
+				if (remainingBytes == 0) {
+					return traits_type::eof();
+				}
+
+				--remainingBytes;
+				return ch;
+			}
+
+		private:
+			std::size_t remainingBytes = 0;
+		};
 
 		void AssertNodeRecord(
 			const SnapshotNodeRecord& record,
@@ -204,7 +246,7 @@ namespace space_fossils::tests {
 
 	SF_TEST(file_tree_snapshot_writer, RejectsNullRoot)
 	{
-		SnapshotWriter writer;
+		Writer writer;
 		std::ostringstream out(std::ios::out | std::ios::binary);
 
 		const bool written = writer.TryWriteSnapshot(out, nullptr);
@@ -216,7 +258,7 @@ namespace space_fossils::tests {
 	SF_TEST(file_tree_snapshot_writer, WritesSnapshotHeaderAndNodesInDfsPreorder)
 	{
 		TestTree tree;
-		SnapshotWriter writer;
+		Writer writer;
 		std::ostringstream out(std::ios::out | std::ios::binary);
 
 		const std::uint64_t timestampBefore = CurrentUnixSeconds();
@@ -253,7 +295,7 @@ namespace space_fossils::tests {
 		root.entryStatus = EntryStatus::Unknown;
 		root.scanStatus = EntryScanStatus::Unknown;
 
-		SnapshotWriter writer;
+		Writer writer;
 		std::ostringstream out(std::ios::out | std::ios::binary);
 
 		const std::uint64_t timestampBefore = CurrentUnixSeconds();
@@ -281,7 +323,7 @@ namespace space_fossils::tests {
 			1
 		};
 
-		SnapshotWriter writer;
+		Writer writer;
 		std::ostringstream out(std::ios::out | std::ios::binary);
 
 		const bool written = writer.TryWriteSnapshot(out, &root);
@@ -289,10 +331,23 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(written, false);
 	}
 
+	SF_TEST(file_tree_snapshot_writer, ReturnsFalseWhenStreamFailsDuringWrite)
+	{
+		TestTree tree;
+		Writer writer;
+		FailingAfterBytesBuffer buffer(1);
+		std::ostream out(&buffer);
+
+		const bool written = writer.TryWriteSnapshot(out, &tree.root);
+
+		SF_ASSERT_EQ(written, false);
+		SF_ASSERT_EQ(out.good(), false);
+	}
+
 	SF_TEST(file_tree_snapshot_writer, ReturnsFalseWhenStreamAlreadyFailed)
 	{
 		TestTree tree;
-		SnapshotWriter writer;
+		Writer writer;
 		std::ostringstream out(std::ios::out | std::ios::binary);
 		out.setstate(std::ios::badbit);
 

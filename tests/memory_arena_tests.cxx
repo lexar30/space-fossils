@@ -118,9 +118,17 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(target.GetBlocksCount(), 1);
 		SF_ASSERT_EQ(target.GetAllocatedBytes(), 16);
 		SF_ASSERT_EQ(target.GetUsedSize(), 8);
+		// MergeFrom defines the moved-from source as empty.
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable: 26800)
+#endif
 		SF_ASSERT_EQ(source.GetBlocksCount(), 0);
 		SF_ASSERT_EQ(source.GetAllocatedBytes(), 0);
 		SF_ASSERT_EQ(source.GetUsedSize(), 0);
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 		SF_ASSERT_EQ(storedByte[0] == std::byte { 42 }, true);
 	}
 
@@ -141,9 +149,17 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(target.GetBlocksCount(), 2);
 		SF_ASSERT_EQ(target.GetAllocatedBytes(), 24);
 		SF_ASSERT_EQ(target.GetUsedSize(), 12);
+		// MergeFrom defines the moved-from source as empty.
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable: 26800)
+#endif
 		SF_ASSERT_EQ(source.GetBlocksCount(), 0);
 		SF_ASSERT_EQ(source.GetAllocatedBytes(), 0);
 		SF_ASSERT_EQ(source.GetUsedSize(), 0);
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 		SF_ASSERT_EQ(targetByte[0] == std::byte { 11 }, true);
 		SF_ASSERT_EQ(sourceByte[0] == std::byte { 22 }, true);
 	}

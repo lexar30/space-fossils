@@ -1,4 +1,5 @@
-#include "space_fossils/file_tree/storage.hxx"
+#include "space_fossils/file_tree/storage/storage.hxx"
+
 #include "space_fossils_tests/micro_test_framework.hxx"
 
 #include <memory>
@@ -11,7 +12,7 @@ namespace space_fossils::tests {
 
 		StorageConfig MakeConfig()
 		{
-			return StorageConfig {
+			return StorageConfig{
 				sizeof(Node) * 4,
 				sizeof(NativeChar) * 32
 			};
@@ -73,6 +74,7 @@ namespace space_fossils::tests {
 		{
 			TreePoolBundle bundle = MakeBundle();
 			bundle.root = CreateBundleNode(bundle, rootName);
+			bundle.root->entryType = EntryType::Directory;
 
 			return bundle;
 		}
@@ -548,6 +550,28 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(storage.GetRoot() == root, true);
 		SF_ASSERT_EQ(root->firstChild == nullptr, true);
 		SF_ASSERT_EQ(storage.GetNodesCount(), 1);
+	}
+
+	SF_TEST(file_tree_storage, AttachChildRejectsFileParent)
+	{
+		Storage storage(MakeConfig());
+		NativeString rootName = MakeNativeString("root");
+		NativeString fileName = MakeNativeString("file.txt");
+		NativeString newChildName = MakeNativeString("new-child");
+
+		TreePoolBundle rootBundle = MakeSubtree(rootName);
+		Node* file = AppendBundleChild(rootBundle, rootBundle.root, fileName);
+		SetFile(*file, 10);
+
+		Node* root = ApplyAdoptRoot(storage, std::move(rootBundle));
+		Node* fileParent = root->firstChild;
+
+		std::optional<AppliedChange> appliedChange = TryAttachChild(storage, fileParent, MakeSubtree(newChildName));
+
+		SF_ASSERT_EQ(appliedChange.has_value(), false);
+		SF_ASSERT_EQ(fileParent->firstChild == nullptr, true);
+		SF_ASSERT_EQ(storage.GetRoot() == root, true);
+		SF_ASSERT_EQ(storage.GetNodesCount(), 2);
 	}
 
 	SF_TEST(file_tree_storage, ReplaceSubtreeKeepsSiblingList)
