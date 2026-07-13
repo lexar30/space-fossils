@@ -12,6 +12,8 @@
 // Rejected changes must not mutate storage.
 
 namespace space_fossils::core::file_tree {
+	struct TreePoolBundle;
+
 	struct StorageConfig
 	{
 		std::size_t nodeBlockSize = DefaultNodeBlockSize;
@@ -30,11 +32,12 @@ namespace space_fossils::core::file_tree {
 		Storage(const Storage&) = delete;
 		Storage& operator=(const Storage&) = delete;
 
-		void Clear();
-
 		std::size_t GetNodesCount() const;
 
-		std::optional<AppliedChange> ApplyChange(IncomingChange&& change);
+		std::optional<AppliedChange> TryAdoptRoot(TreePoolBundle&& subtree);
+		std::optional<AppliedChange> TryAttachChild(Node* parent, TreePoolBundle&& subtree);
+		std::optional<AppliedChange> TryReplaceSubtree(Node* target, TreePoolBundle&& subtree);
+		std::optional<AppliedChange> TryRemoveSubtree(Node* node);
 
 		FileSize GetRootSize() const;
 
@@ -52,11 +55,6 @@ namespace space_fossils::core::file_tree {
 		std::size_t GetNodePoolBlockSize() const;
 
 	private:
-		std::optional<AppliedChange> AdoptRoot(TreePoolBundle&& subtree);
-		std::optional<AppliedChange> AttachChild(Node* parent, TreePoolBundle&& subtree);
-		std::optional<AppliedChange> ReplaceSubtree(Node* target, TreePoolBundle&& subtree);
-		std::optional<AppliedChange> RemoveSubtree(Node* node);
-
 		static bool IsValidBundle(const TreePoolBundle& subtree);
 		static void MergeBundlePools(NamePool& targetNamePool, NodePool& targetNodePool, TreePoolBundle& subtree);
 		static bool FindDirectChild(Node* parent, Node* child, Node*& previous);

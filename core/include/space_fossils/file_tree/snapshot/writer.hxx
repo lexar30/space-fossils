@@ -1,5 +1,7 @@
 #pragma once
 
+#include "space_fossils/operation_timer.hxx"
+
 #include <array>
 #include <cstdint>
 #include <ostream>
@@ -16,6 +18,7 @@ namespace space_fossils::core::file_tree::snapshot {
 
 	public:
 		bool TryWriteSnapshot(std::ostream& out, const Node* root) const;
+		MetricsDuration GetWriteElapsedTime() const;
 
 	private:
 		bool TryWriteMetadata(std::ostream& out) const;
@@ -26,5 +29,8 @@ namespace space_fossils::core::file_tree::snapshot {
 
 		template<typename T>
 		bool TryWriteValue(std::ostream& out, T value) const;
+
+	private:
+		mutable MetricsDuration writeElapsedTime = {};
 	};
 }

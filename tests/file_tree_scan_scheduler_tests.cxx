@@ -12,7 +12,7 @@ namespace space_fossils::tests {
 		using namespace space_fossils::core::file_tree;
 		using namespace space_fossils::core::file_tree::scan;
 
-		Job MakeJob(const char* path, std::size_t maxDepth, IncomingChangeType applyAs, Node* target = nullptr)
+		Job MakeJob(const char* path, std::size_t maxDepth, ChangeType applyAs, Node* target = nullptr)
 		{
 			Job job;
 			job.input.path = std::filesystem::path(path);
@@ -38,35 +38,39 @@ namespace space_fossils::tests {
 
 		SF_ASSERT_EQ(scheduler.HasJobs(), false);
 		SF_ASSERT_EQ(scheduler.PopNext().has_value(), false);
+		SF_ASSERT_EQ(scheduler.GetPendingJobsPeakCount(), 0);
 	}
 
 	SF_TEST(file_tree_scan_scheduler, ScheduleMakesJobAvailable)
 	{
 		Scheduler scheduler;
-		Job expected = MakeJob("root", 1, IncomingChangeType::AdoptRoot);
+		Job expected = MakeJob("root", 1, ChangeType::AdoptRoot);
 
 		scheduler.Schedule(expected);
 
 		SF_ASSERT_EQ(scheduler.HasJobs(), true);
+		SF_ASSERT_EQ(scheduler.GetPendingJobsPeakCount(), 1);
 		std::optional<Job> actual = scheduler.PopNext();
 
 		SF_ASSERT_EQ(actual.has_value(), true);
 		AssertJobEquals(actual.value(), expected);
 		SF_ASSERT_EQ(scheduler.HasJobs(), false);
 		SF_ASSERT_EQ(scheduler.PopNext().has_value(), false);
+		SF_ASSERT_EQ(scheduler.GetPendingJobsPeakCount(), 1);
 	}
 
 	SF_TEST(file_tree_scan_scheduler, PopNextPreservesFifoOrder)
 	{
 		Scheduler scheduler;
 		Node target;
-		Job first = MakeJob("first", 1, IncomingChangeType::AdoptRoot);
-		Job second = MakeJob("second", 2, IncomingChangeType::Replace, &target);
-		Job third = MakeJob("third", 3, IncomingChangeType::Attach, &target);
+		Job first = MakeJob("first", 1, ChangeType::AdoptRoot);
+		Job second = MakeJob("second", 2, ChangeType::Replace, &target);
+		Job third = MakeJob("third", 3, ChangeType::Attach, &target);
 
 		scheduler.Schedule(first);
 		scheduler.Schedule(second);
 		scheduler.Schedule(third);
+		SF_ASSERT_EQ(scheduler.GetPendingJobsPeakCount(), 3);
 
 		std::optional<Job> firstActual = scheduler.PopNext();
 		std::optional<Job> secondActual = scheduler.PopNext();
@@ -79,17 +83,20 @@ namespace space_fossils::tests {
 		AssertJobEquals(secondActual.value(), second);
 		AssertJobEquals(thirdActual.value(), third);
 		SF_ASSERT_EQ(scheduler.HasJobs(), false);
+		SF_ASSERT_EQ(scheduler.GetPendingJobsPeakCount(), 3);
 	}
 
 	SF_TEST(file_tree_scan_scheduler, ClearRemovesScheduledJobs)
 	{
 		Scheduler scheduler;
-		scheduler.Schedule(MakeJob("first", 1, IncomingChangeType::AdoptRoot));
-		scheduler.Schedule(MakeJob("second", 1, IncomingChangeType::Replace));
+		scheduler.Schedule(MakeJob("first", 1, ChangeType::AdoptRoot));
+		scheduler.Schedule(MakeJob("second", 1, ChangeType::Replace));
+		SF_ASSERT_EQ(scheduler.GetPendingJobsPeakCount(), 2);
 
 		scheduler.Clear();
 
 		SF_ASSERT_EQ(scheduler.HasJobs(), false);
 		SF_ASSERT_EQ(scheduler.PopNext().has_value(), false);
+		SF_ASSERT_EQ(scheduler.GetPendingJobsPeakCount(), 0);
 	}
 }

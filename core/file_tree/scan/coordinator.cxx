@@ -33,21 +33,49 @@ namespace space_fossils::core::file_tree::scan {
 			return {};
 		}
 
+		if (job.value().applyAs == ChangeType::Unknown) {
+			++scanJobStatistics.rejectedJobCount;
+			return { ApplyStatus::Rejected };
+		}
+
 		Job scanJob = std::move(job.value());
-
-		scanTimer.Reset();
-		scanTimer.Start();
-		TreePoolBundle bundle = scanner.Scan(scanJob.input);
-		scanTimer.Stop();
-		scanElapsedTime += scanTimer.Elapsed();
-
-		IncomingChange incomingChanges;
-		incomingChanges.bundle = std::move(bundle);
-		incomingChanges.target = scanJob.target;
-		incomingChanges.type = scanJob.applyAs;
-
 		ApplyResult result;
-		result.appliedChange = storage.ApplyChange(std::move(incomingChanges));
+
+		if (scanJob.applyAs == ChangeType::Remove) {
+			result.appliedChange = storage.TryRemoveSubtree(scanJob.target);
+		}
+		else {
+			if (scanJob.target == nullptr && (scanJob.applyAs == ChangeType::Attach || scanJob.applyAs == ChangeType::Replace)) {
+				++scanJobStatistics.rejectedJobCount;
+				return { ApplyStatus::Rejected };
+			}
+
+			scanTimer.Reset();
+			scanTimer.Start();
+			TreePoolBundle bundle = scanner.Scan(scanJob.input);
+			scanTimer.Stop();
+			scanElapsedTime += scanTimer.Elapsed();
+
+			switch (scanJob.applyAs) {
+			case ChangeType::AdoptRoot:
+				result.appliedChange = storage.TryAdoptRoot(std::move(bundle));
+				break;
+
+			case ChangeType::Attach: {
+				result.appliedChange = storage.TryAttachChild(scanJob.target, std::move(bundle));
+				break;
+			}
+
+			case ChangeType::Replace: {
+				result.appliedChange = storage.TryReplaceSubtree(scanJob.target, std::move(bundle));
+				break;
+			}
+
+			default:
+				result.appliedChange = std::nullopt;
+			}
+		}
+
 		if (result.appliedChange.has_value()) {
 			result.status = ApplyStatus::Applied;
 			++scanJobStatistics.appliedJobCount;
@@ -66,6 +94,7 @@ namespace space_fossils::core::file_tree::scan {
 		Summary summary;
 
 		summary.totalScanElapsedTime = scanElapsedTime;
+		summary.pendingJobsPeakCount = scheduler.GetPendingJobsPeakCount();
 		summary.storedNodesCount = storage.GetNodesCount();
 		summary.totalLogicalSize = storage.GetRootSize();
 

@@ -6,10 +6,16 @@ namespace space_fossils::core::file_tree::scan {
 	void Scheduler::Schedule(Job scanJob)
 	{
 		jobs.push_back(std::move(scanJob));
+
+		const std::size_t jobsCount = jobs.size();
+		if (jobsCount > pendingJobsPeakCount) {
+			pendingJobsPeakCount = jobsCount;
+		}
 	}
 
 	void Scheduler::Clear()
 	{
+		pendingJobsPeakCount = 0;
 		jobs.clear();
 	}
 
@@ -28,5 +34,10 @@ namespace space_fossils::core::file_tree::scan {
 		jobs.pop_front();
 
 		return job;
+	}
+
+	std::size_t Scheduler::GetPendingJobsPeakCount() const
+	{
+		return pendingJobsPeakCount;
 	}
 }

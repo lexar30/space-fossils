@@ -44,7 +44,7 @@ namespace space_fossils::core::file_tree {
 	{
 		session.Sync();
 
-		const Node* currentNode = session.GetCurrentNodeHandle().cachedNode;
+		const Node* currentNode = session.GetCurrentNode();
 		if (currentNode == nullptr || currentNode->parent == nullptr) {
 			return false;
 		}
@@ -72,7 +72,7 @@ namespace space_fossils::core::file_tree {
 			return false;
 		}
 
-		const Node* foundChild = TreeQuery::FindChildByName(session.GetCurrentNodeHandle().cachedNode, name);
+		const Node* foundChild = TreeQuery::FindChildByName(session.GetCurrentNode(), name);
 		if (foundChild == nullptr) {
 			return false;
 		}

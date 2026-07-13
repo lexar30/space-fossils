@@ -1,5 +1,6 @@
 #include "space_fossils/file_tree/session/session.hxx"
 
+#include "space_fossils/file_tree/model/tree_pool_bundle.hxx"
 #include "space_fossils/file_tree/storage/storage.hxx"
 #include "space_fossils/file_tree/query/tree_query.hxx"
 #include "space_fossils_tests/micro_test_framework.hxx"
@@ -83,37 +84,19 @@ namespace space_fossils::tests {
 			return bundle;
 		}
 
-		IncomingChange MakeAdoptRootChange(TreePoolBundle&& bundle)
-		{
-			IncomingChange change;
-			change.type = IncomingChangeType::AdoptRoot;
-			change.bundle = std::move(bundle);
-
-			return change;
-		}
-
-		IncomingChange MakeRemoveChange(Node* target)
-		{
-			IncomingChange change;
-			change.type = IncomingChangeType::Remove;
-			change.target = target;
-
-			return change;
-		}
-
 		Node* ApplyAdoptRoot(Storage& storage, TreePoolBundle&& bundle)
 		{
-			std::optional<AppliedChange> appliedChange = storage.ApplyChange(MakeAdoptRootChange(std::move(bundle)));
+			std::optional<AppliedChange> appliedChange = storage.TryAdoptRoot(std::move(bundle));
 
 			SF_ASSERT_EQ(appliedChange.has_value(), true);
-			SF_ASSERT_EQ(appliedChange->type, IncomingChangeType::AdoptRoot);
+			SF_ASSERT_EQ(appliedChange->type, ChangeType::AdoptRoot);
 
 			return appliedChange->addedRoot;
 		}
 
 		bool ApplyRemoveSubtree(Storage& storage, Node* target)
 		{
-			std::optional<AppliedChange> appliedChange = storage.ApplyChange(MakeRemoveChange(target));
+			std::optional<AppliedChange> appliedChange = storage.TryRemoveSubtree(target);
 			return appliedChange.has_value();
 		}
 
@@ -127,7 +110,7 @@ namespace space_fossils::tests {
 
 		const Node* GetCurrentNode(Session& session)
 		{
-			return session.GetCurrentNodeHandle().cachedNode;
+			return session.GetCurrentNode();
 		}
 	}
 
@@ -213,7 +196,7 @@ namespace space_fossils::tests {
 		AssertNativeStringEquals(session.GetCurrentNativePath(), TreeQuery::BuildNativePath(newRoot));
 	}
 
-	SF_TEST(file_tree_session, EmptyStorageDoesNotExposeStalePointersAfterClear)
+	SF_TEST(file_tree_session, RootRemovalDoesNotExposeStalePointers)
 	{
 		Storage storage(MakeConfig());
 		NativeString rootName = MakeNativeString("root");
@@ -221,10 +204,10 @@ namespace space_fossils::tests {
 
 		TreePoolBundle bundle = MakeSubtree(rootName);
 		AppendBundleChild(bundle, bundle.root, childName);
-		ApplyAdoptRoot(storage, std::move(bundle));
+		Node* root = ApplyAdoptRoot(storage, std::move(bundle));
 
 		Session session(storage);
-		storage.Clear();
+		SF_ASSERT_EQ(ApplyRemoveSubtree(storage, root), true);
 
 		SF_ASSERT_EQ(session.IsValid(), false);
 		SF_ASSERT_EQ(session.HasTree(), false);
@@ -233,20 +216,20 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(session.GetAvailableChildren().empty(), true);
 	}
 
-	SF_TEST(file_tree_session, KeepsCachedPathAcrossEmptyStorageAndRestoresAfterReload)
+	SF_TEST(file_tree_session, KeepsCachedPathAcrossRootRemovalAndRestoresAfterReload)
 	{
 		Storage storage(MakeConfig());
 		NativeString rootName = MakeNativeString("C:");
 		NativeString folderName = MakeNativeString("folder");
 
 		TreePoolBundle oldBundle = MakeSubtree(rootName);
-		Node* oldFolder = AppendBundleChild(oldBundle, oldBundle.root, folderName);
+		Node* oldRoot = oldBundle.root;
+		Node* oldFolder = AppendBundleChild(oldBundle, oldRoot, folderName);
 		ApplyAdoptRoot(storage, std::move(oldBundle));
 
 		Session session(storage);
 		SF_ASSERT_EQ(session.TrySetCurrentNode(oldFolder), true);
-
-		storage.Clear();
+		SF_ASSERT_EQ(ApplyRemoveSubtree(storage, oldRoot), true);
 		SF_ASSERT_EQ(GetCurrentNode(session) == nullptr, true);
 
 		TreePoolBundle newBundle = MakeSubtree(rootName);

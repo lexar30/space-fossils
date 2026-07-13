@@ -1,5 +1,6 @@
 #include "space_fossils/file_tree/session/session_operations.hxx"
 
+#include "space_fossils/file_tree/model/tree_pool_bundle.hxx"
 #include "space_fossils/file_tree/session/session.hxx"
 #include "space_fossils/file_tree/storage/storage.hxx"
 #include "space_fossils_tests/micro_test_framework.hxx"
@@ -83,28 +84,19 @@ namespace space_fossils::tests {
 			return bundle;
 		}
 
-		IncomingChange MakeAdoptRootChange(TreePoolBundle&& bundle)
-		{
-			IncomingChange change;
-			change.type = IncomingChangeType::AdoptRoot;
-			change.bundle = std::move(bundle);
-
-			return change;
-		}
-
 		Node* ApplyAdoptRoot(Storage& storage, TreePoolBundle&& bundle)
 		{
-			std::optional<AppliedChange> appliedChange = storage.ApplyChange(MakeAdoptRootChange(std::move(bundle)));
+			std::optional<AppliedChange> appliedChange = storage.TryAdoptRoot(std::move(bundle));
 
 			SF_ASSERT_EQ(appliedChange.has_value(), true);
-			SF_ASSERT_EQ(appliedChange->type, IncomingChangeType::AdoptRoot);
+			SF_ASSERT_EQ(appliedChange->type, ChangeType::AdoptRoot);
 
 			return appliedChange->addedRoot;
 		}
 
 		const Node* CurrentNode(Session& session)
 		{
-			return session.GetCurrentNodeHandle().cachedNode;
+			return session.GetCurrentNode();
 		}
 	}
 

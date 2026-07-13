@@ -28,6 +28,9 @@ namespace space_fossils::core::file_tree::snapshot {
 
 	std::optional<TreePoolBundle> Reader::TryReadSnapshot(std::istream& in) const
 	{
+		OperationTimer timer;
+
+		timer.Start();
 		TreePoolBundle bundle;
 
 		bundle.root = nullptr;
@@ -36,18 +39,31 @@ namespace space_fossils::core::file_tree::snapshot {
 		bundle.nodePool = std::make_unique<NodePool>(DefaultNodeBlockSize);
 
 		if (!TryReadAndCheckMetadata(in)) {
+			timer.Stop();
+			readElapsedTime = timer.Elapsed();
 			return std::nullopt;
 		}
 
 		if (!TryReadBody(in, bundle)) {
+			timer.Stop();
+			readElapsedTime = timer.Elapsed();
 			return std::nullopt;
 		}
 
 		if (in.peek() != std::char_traits<char>::eof()) {
+			timer.Stop();
+			readElapsedTime = timer.Elapsed();
 			return std::nullopt;
 		}
+		timer.Stop();
+		readElapsedTime = timer.Elapsed();
 
 		return bundle;
+	}
+
+	MetricsDuration Reader::GetReadElapsedTime() const
+	{
+		return readElapsedTime;
 	}
 
 	bool Reader::TryReadAndCheckMetadata(std::istream& in) const

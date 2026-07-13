@@ -217,7 +217,10 @@ namespace space_fossils::tests {
 
 	SF_TEST(file_tree_snapshot_reader, RejectsEmptyStream)
 	{
-		std::optional<TreePoolBundle> bundle = ReadSnapshot({});
+		Reader reader;
+		std::istringstream in({}, std::ios::in | std::ios::binary);
+
+		std::optional<TreePoolBundle> bundle = reader.TryReadSnapshot(in);
 
 		SF_ASSERT_EQ(bundle.has_value(), false);
 	}
@@ -226,8 +229,11 @@ namespace space_fossils::tests {
 	{
 		TestTree tree;
 		const std::string bytes = WriteSnapshot(tree.root);
+		Reader reader;
+		std::istringstream in(bytes, std::ios::in | std::ios::binary);
+		SF_ASSERT_EQ(reader.GetReadElapsedTime().count(), 0);
 
-		std::optional<TreePoolBundle> bundle = ReadSnapshot(bytes);
+		std::optional<TreePoolBundle> bundle = reader.TryReadSnapshot(in);
 
 		SF_ASSERT_EQ(bundle.has_value(), true);
 		AssertRoundTrippedTree(*bundle);

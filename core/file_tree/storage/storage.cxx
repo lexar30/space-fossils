@@ -1,6 +1,7 @@
 #include "space_fossils/file_tree/storage/storage.hxx"
 
 #include "space_fossils/file_tree/query/tree_query.hxx"
+#include "space_fossils/file_tree/model/tree_pool_bundle.hxx"
 
 #include <optional>
 #include <utility>
@@ -109,48 +110,6 @@ namespace space_fossils::core::file_tree {
 	{
 	}
 
-	std::optional<AppliedChange> Storage::ApplyChange(IncomingChange&& change)
-	{
-		std::optional<AppliedChange> appliedChange;
-
-		switch (change.type) {
-		case IncomingChangeType::AdoptRoot:
-			appliedChange = AdoptRoot(std::move(change.bundle));
-			break;
-
-		case IncomingChangeType::Attach: {
-			if (change.target == nullptr) {
-				return std::nullopt;
-			}
-
-			appliedChange = AttachChild(change.target, std::move(change.bundle));
-			break;
-		}
-
-		case IncomingChangeType::Replace: {
-			if (change.target == nullptr) {
-				return std::nullopt;
-			}
-
-			appliedChange = ReplaceSubtree(change.target, std::move(change.bundle));
-			break;
-		}
-
-		case IncomingChangeType::Remove:
-			appliedChange = RemoveSubtree(change.target);
-			break;
-
-		default:
-			return std::nullopt;
-		}
-
-		if (appliedChange.has_value()) {
-			++version;
-		}
-
-		return appliedChange;
-	}
-
 	FileSize Storage::GetRootSize() const
 	{
 		if (root == nullptr) {
@@ -210,7 +169,7 @@ namespace space_fossils::core::file_tree {
 		return nodePool.GetBlockSize();
 	}
 
-	std::optional<AppliedChange> Storage::AdoptRoot(TreePoolBundle&& subtree)
+	std::optional<AppliedChange> Storage::TryAdoptRoot(TreePoolBundle&& subtree)
 	{
 		if (!IsValidBundle(subtree)) {
 			return std::nullopt;
@@ -228,9 +187,10 @@ namespace space_fossils::core::file_tree {
 
 		root = newRoot;
 		nodesCount = addedNodesCount;
+		++version;
 
 		return AppliedChange{
-			IncomingChangeType::AdoptRoot,
+			ChangeType::AdoptRoot,
 			oldRoot,
 			newRoot,
 			addedNodesCount,
@@ -238,7 +198,7 @@ namespace space_fossils::core::file_tree {
 		};
 	}
 
-	std::optional<AppliedChange> Storage::AttachChild(Node* parent, TreePoolBundle&& subtree)
+	std::optional<AppliedChange> Storage::TryAttachChild(Node* parent, TreePoolBundle&& subtree)
 	{
 		if (parent == nullptr || !IsValidBundle(subtree) || !TreeQuery::ContainsInSiblingChain(root, parent) || parent->entryType != EntryType::Directory) {
 			return std::nullopt;
@@ -267,9 +227,10 @@ namespace space_fossils::core::file_tree {
 
 		nodesCount += addedNodesCount;
 		RefreshAncestorMetadata(parent, DefaultFileSize, addedSize);
+		++version;
 
 		return AppliedChange{
-			IncomingChangeType::Attach,
+			ChangeType::Attach,
 			parent,
 			child,
 			addedNodesCount,
@@ -277,7 +238,7 @@ namespace space_fossils::core::file_tree {
 		};
 	}
 
-	std::optional<AppliedChange> Storage::ReplaceSubtree(Node* target, TreePoolBundle&& subtree)
+	std::optional<AppliedChange> Storage::TryReplaceSubtree(Node* target, TreePoolBundle&& subtree)
 	{
 		if (target == nullptr || !IsValidBundle(subtree) || !TreeQuery::ContainsInSiblingChain(root, target)) {
 			return std::nullopt;
@@ -320,9 +281,10 @@ namespace space_fossils::core::file_tree {
 
 		nodesCount = nodesCount - removedNodesCount + addedNodesCount;
 		RefreshAncestorMetadata(parent, removedSize, addedSize);
+		++version;
 
 		return AppliedChange{
-			IncomingChangeType::Replace,
+			ChangeType::Replace,
 			target,
 			replacement,
 			addedNodesCount,
@@ -330,7 +292,7 @@ namespace space_fossils::core::file_tree {
 		};
 	}
 
-	std::optional<AppliedChange> Storage::RemoveSubtree(Node* node)
+	std::optional<AppliedChange> Storage::TryRemoveSubtree(Node* node)
 	{
 		if (node == nullptr || !TreeQuery::ContainsInSiblingChain(root, node)) {
 			return std::nullopt;
@@ -361,23 +323,15 @@ namespace space_fossils::core::file_tree {
 		node->nextSibling = nullptr;
 		nodesCount -= removedNodesCount;
 		RefreshAncestorMetadata(parent, removedSize, DefaultFileSize);
+		++version;
 
 		return AppliedChange{
-			IncomingChangeType::Remove,
+			ChangeType::Remove,
 			node,
 			nullptr,
 			0,
 			removedNodesCount
 		};
-	}
-
-	void Storage::Clear()
-	{
-		nodesCount = 0;
-		root = nullptr;
-		nodePool.Release();
-		namePool.Release();
-		++version;
 	}
 
 	Node* Storage::GetRoot()

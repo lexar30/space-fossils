@@ -82,7 +82,7 @@ namespace space_fossils::tests {
 
 		SF_ASSERT_EQ(job.input.path == input.path, true);
 		SF_ASSERT_EQ(job.input.maxDepth, input.maxDepth);
-		SF_ASSERT_EQ(job.applyAs, IncomingChangeType::AdoptRoot);
+		SF_ASSERT_EQ(job.applyAs, ChangeType::AdoptRoot);
 		SF_ASSERT_EQ(job.target == nullptr, true);
 	}
 
@@ -95,7 +95,7 @@ namespace space_fossils::tests {
 
 		SF_ASSERT_EQ(job.input.path == input.path, true);
 		SF_ASSERT_EQ(job.input.maxDepth, input.maxDepth);
-		SF_ASSERT_EQ(job.applyAs, IncomingChangeType::Replace);
+		SF_ASSERT_EQ(job.applyAs, ChangeType::Replace);
 		SF_ASSERT_EQ(job.target == &target, true);
 	}
 
@@ -108,7 +108,7 @@ namespace space_fossils::tests {
 
 		SF_ASSERT_EQ(job.input.path == input.path, true);
 		SF_ASSERT_EQ(job.input.maxDepth, input.maxDepth);
-		SF_ASSERT_EQ(job.applyAs, IncomingChangeType::Attach);
+		SF_ASSERT_EQ(job.applyAs, ChangeType::Attach);
 		SF_ASSERT_EQ(job.target == &parent, true);
 	}
 
@@ -130,7 +130,7 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(Planner::PlanFollowUpJobs(completedJob, unknownChange, config).empty(), true);
 
 		AppliedChange validChange;
-		validChange.type = IncomingChangeType::AdoptRoot;
+		validChange.type = ChangeType::AdoptRoot;
 		validChange.addedRoot = &root;
 
 		PlanningConfig zeroDepthConfig;
@@ -150,7 +150,7 @@ namespace space_fossils::tests {
 
 		Job completedJob = Planner::PlanRootScan(MakeInput("root", 0));
 		AppliedChange change;
-		change.type = IncomingChangeType::AdoptRoot;
+		change.type = ChangeType::AdoptRoot;
 		change.addedRoot = &root;
 
 		PlanningConfig config;
@@ -161,7 +161,7 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(jobs.size(), 1);
 		SF_ASSERT_EQ(jobs[0].input.path == completedJob.input.path, true);
 		SF_ASSERT_EQ(jobs[0].input.maxDepth, config.jobDepth);
-		SF_ASSERT_EQ(jobs[0].applyAs, IncomingChangeType::Replace);
+		SF_ASSERT_EQ(jobs[0].applyAs, ChangeType::Replace);
 		SF_ASSERT_EQ(jobs[0].target == &root, true);
 	}
 
@@ -194,7 +194,7 @@ namespace space_fossils::tests {
 
 		Job completedJob = Planner::PlanRootScan(MakeInput("root", 1));
 		AppliedChange change;
-		change.type = IncomingChangeType::AdoptRoot;
+		change.type = ChangeType::AdoptRoot;
 		change.addedRoot = &root;
 
 		PlanningConfig config;
@@ -205,12 +205,12 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(jobs.size(), 2);
 		SF_ASSERT_EQ(jobs[0].input.path == std::filesystem::path("root") / firstName, true);
 		SF_ASSERT_EQ(jobs[0].input.maxDepth, config.jobDepth);
-		SF_ASSERT_EQ(jobs[0].applyAs, IncomingChangeType::Replace);
+		SF_ASSERT_EQ(jobs[0].applyAs, ChangeType::Replace);
 		SF_ASSERT_EQ(jobs[0].target == &first, true);
 
 		SF_ASSERT_EQ(jobs[1].input.path == std::filesystem::path("root") / secondName / nestedName, true);
 		SF_ASSERT_EQ(jobs[1].input.maxDepth, config.jobDepth);
-		SF_ASSERT_EQ(jobs[1].applyAs, IncomingChangeType::Replace);
+		SF_ASSERT_EQ(jobs[1].applyAs, ChangeType::Replace);
 		SF_ASSERT_EQ(jobs[1].target == &nested, true);
 	}
 }

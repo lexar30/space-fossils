@@ -11,7 +11,7 @@ namespace space_fossils::core::file_tree::scan {
 	struct Job
 	{
 		ScanInput input;
-		IncomingChangeType applyAs = IncomingChangeType::Unknown;
+		ChangeType applyAs = ChangeType::Unknown;
 		Node* target = nullptr;
 	};
 }

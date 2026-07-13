@@ -15,11 +15,25 @@
 namespace space_fossils::core::file_tree::snapshot {
 	bool Writer::TryWriteSnapshot(std::ostream& out, const Node* root) const
 	{
+		OperationTimer timer;
+
+		timer.Start();
 		if (root == nullptr) {
+			timer.Stop();
+			writeElapsedTime = timer.Elapsed();
 			return false;
 		}
 
-		return TryWriteMetadata(out) && TryWriteBody(out, root);
+		const bool isSuccessful = TryWriteMetadata(out) && TryWriteBody(out, root);
+		timer.Stop();
+		writeElapsedTime = timer.Elapsed();
+
+		return isSuccessful;
+	}
+
+	MetricsDuration Writer::GetWriteElapsedTime() const
+	{
+		return writeElapsedTime;
 	}
 
 	bool Writer::TryWriteBody(std::ostream& out, const Node* root) const

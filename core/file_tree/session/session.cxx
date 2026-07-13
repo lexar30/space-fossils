@@ -7,20 +7,22 @@
 namespace space_fossils::core::file_tree {
 	Session::Session(const Storage& storage)
 		: storage(storage)
+		, currentNode(storage.GetRoot())
+		, currentNativePath(TreeQuery::BuildNativePath(storage.GetRoot()))
+		, knownStorageVersion(storage.GetVersion())
 	{
-		nodeHandle = { storage.GetRoot(), TreeQuery::BuildNativePath(storage.GetRoot()), storage.GetVersion() };
 		RefreshAvailableChildren();
 	}
 
 	bool Session::IsValid()
 	{
 		Sync();
-		return nodeHandle.cachedNode != nullptr;
+		return currentNode != nullptr;
 	}
 
 	void Session::Sync()
 	{
-		if (nodeHandle.storageVersion == storage.GetVersion()) {
+		if (knownStorageVersion == storage.GetVersion()) {
 			return;
 		}
 
@@ -28,13 +30,13 @@ namespace space_fossils::core::file_tree {
 
 		const Node* root = storage.GetRoot();
 		if (root == nullptr) {
-			nodeHandle.cachedNode = nullptr;
+			currentNode = nullptr;
 			availableChildren.clear();
-			nodeHandle.storageVersion = storage.GetVersion();
+			knownStorageVersion = storage.GetVersion();
 			return;
 		}
 
-		const Node* closestNode = TreeQuery::FindClosestNodeByPath(root, nodeHandle.nativePath);
+		const Node* closestNode = TreeQuery::FindClosestNodeByPath(root, currentNativePath);
 		if (closestNode == nullptr) {
 			closestNode = root;
 		}
@@ -52,20 +54,20 @@ namespace space_fossils::core::file_tree {
 		return storage.GetRoot();
 	}
 
-	NodeHandle Session::GetCurrentNodeHandle()
+	const Node* Session::GetCurrentNode()
 	{
 		Sync();
-		return nodeHandle;
+		return currentNode;
 	}
 
 	NativeString Session::GetCurrentNativePath()
 	{
 		Sync();
-		if (nodeHandle.cachedNode == nullptr) {
+		if (currentNode == nullptr) {
 			return {};
 		}
 
-		return nodeHandle.nativePath;
+		return currentNativePath;
 	}
 
 	bool Session::TrySetCurrentNode(const Node* node)
@@ -114,15 +116,15 @@ namespace space_fossils::core::file_tree {
 
 	void Session::SelectKnownNode(const Node* node)
 	{
-		nodeHandle.cachedNode = node;
-		nodeHandle.nativePath = TreeQuery::BuildNativePath(node);
-		nodeHandle.storageVersion = storage.GetVersion();
+		currentNode = node;
+		currentNativePath = TreeQuery::BuildNativePath(node);
+		knownStorageVersion = storage.GetVersion();
 		focusedChildIndex = 0;
 		RefreshAvailableChildren();
 	}
 
 	void Session::RefreshAvailableChildren()
 	{
-		availableChildren = std::move(TreeQuery::CollectChildren(nodeHandle.cachedNode));
+		availableChildren = std::move(TreeQuery::CollectChildren(currentNode));
 	}
 }

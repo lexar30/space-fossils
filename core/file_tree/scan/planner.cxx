@@ -12,7 +12,7 @@ namespace space_fossils::core::file_tree::scan {
 	{
 		Job scanJob;
 		scanJob.input = std::move(input);
-		scanJob.applyAs = IncomingChangeType::AdoptRoot;
+		scanJob.applyAs = ChangeType::AdoptRoot;
 		scanJob.target = nullptr;
 
 		return scanJob;
@@ -22,7 +22,7 @@ namespace space_fossils::core::file_tree::scan {
 	{
 		Job scanJob;
 		scanJob.input = std::move(input);
-		scanJob.applyAs = IncomingChangeType::Replace;
+		scanJob.applyAs = ChangeType::Replace;
 		scanJob.target = target;
 
 		return scanJob;
@@ -32,7 +32,7 @@ namespace space_fossils::core::file_tree::scan {
 	{
 		Job scanJob;
 		scanJob.input = std::move(input);
-		scanJob.applyAs = IncomingChangeType::Attach;
+		scanJob.applyAs = ChangeType::Attach;
 		scanJob.target = parent;
 
 		return scanJob;
@@ -53,7 +53,7 @@ namespace space_fossils::core::file_tree::scan {
 			Job job;
 			job.input.path = path;
 			job.input.maxDepth = config.jobDepth;
-			job.applyAs = IncomingChangeType::Replace;
+			job.applyAs = ChangeType::Replace;
 			job.target = node;
 
 			jobs.push_back(std::move(job));
@@ -72,7 +72,7 @@ namespace space_fossils::core::file_tree::scan {
 			return {};
 		}
 
-		if (changes.type == IncomingChangeType::Unknown) {
+		if (changes.type == ChangeType::Unknown) {
 			return {};
 		}
 

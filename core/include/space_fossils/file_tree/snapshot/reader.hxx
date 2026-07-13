@@ -1,5 +1,6 @@
 #pragma once
 
+#include "space_fossils/operation_timer.hxx"
 #include "space_fossils/file_tree/model/tree_pool_bundle.hxx"
 
 #include <cstdint>
@@ -15,6 +16,7 @@ namespace space_fossils::core::file_tree::snapshot {
 	{
 	public:
 		std::optional<TreePoolBundle> TryReadSnapshot(std::istream& in) const;
+		MetricsDuration GetReadElapsedTime() const;
 
 	private:
 		bool TryReadAndCheckMetadata(std::istream& in) const;
@@ -26,5 +28,8 @@ namespace space_fossils::core::file_tree::snapshot {
 
 		template<typename T>
 		bool TryReadValue(std::istream& in, T& value) const;
+
+	private:
+		mutable MetricsDuration readElapsedTime = {};
 	};
 }

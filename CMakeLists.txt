@@ -38,7 +38,6 @@ target_sources(space_fossils_core
 
 		core/include/space_fossils/version.hxx
 		core/include/space_fossils/memory/memory_arena.hxx
-		core/include/space_fossils/file_tree/model/node_handle.hxx
 		core/include/space_fossils/file_tree/memory/name_pool.hxx
 		core/include/space_fossils/file_tree/memory/node_pool.hxx
 		core/include/space_fossils/file_tree/model/default_constants.hxx

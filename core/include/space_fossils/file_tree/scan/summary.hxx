@@ -33,6 +33,8 @@ namespace space_fossils::core::file_tree::scan {
 	struct Summary
 	{
 		MetricsDuration totalScanElapsedTime = {};
+
+		std::size_t pendingJobsPeakCount = 0;
 		std::size_t storedNodesCount = 0;
 		FileSize totalLogicalSize = DefaultFileSize;
 		JobStatistics scanJobStatistics;

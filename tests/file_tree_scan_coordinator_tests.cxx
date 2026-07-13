@@ -48,7 +48,7 @@ namespace space_fossils::tests {
 			SF_ASSERT_EQ(NameEquals(node, expectedValue), true);
 		}
 
-		Node* FindChild(Node& parent, const char* name)
+		Node* FindChild(const Node& parent, const char* name)
 		{
 			Node* child = parent.firstChild;
 			while (child != nullptr) {
@@ -62,7 +62,7 @@ namespace space_fossils::tests {
 			return nullptr;
 		}
 
-		Node* RequireChild(Node& parent, const char* name)
+		Node* RequireChild(const Node& parent, const char* name)
 		{
 			Node* child = FindChild(parent, name);
 			SF_ASSERT_EQ(child != nullptr, true);
@@ -168,9 +168,53 @@ namespace space_fossils::tests {
 		AssertSummaryMatchesStorage(summary, storage);
 		SF_ASSERT_EQ(summary.totalLogicalSize, DefaultFileSize);
 		SF_ASSERT_EQ(summary.totalScanElapsedTime.count(), 0);
+		SF_ASSERT_EQ(summary.pendingJobsPeakCount, 0);
 		SF_ASSERT_EQ(summary.scanJobStatistics.emptyProcessCalls, 1);
 		SF_ASSERT_EQ(summary.scanJobStatistics.appliedJobCount, 0);
 		SF_ASSERT_EQ(summary.scanJobStatistics.rejectedJobCount, 0);
+	}
+
+	SF_TEST(file_tree_scan_coordinator, UnknownJobIsRejectedWithoutScanning)
+	{
+		Storage storage;
+		Coordinator coordinator = MakeCoordinator(storage);
+		Job job;
+		job.input = MakeRootScanInput(SPACE_FOSSILS_FILE_SCANNER_FIXTURE_ROOT, 1);
+
+		coordinator.ScheduleJob(std::move(job));
+		ApplyResult result = coordinator.ProcessNext();
+		Summary summary = coordinator.GetSummary();
+
+		AssertRejected(result);
+		SF_ASSERT_EQ(coordinator.HasScheduledJobs(), false);
+		SF_ASSERT_EQ(storage.GetRoot() == nullptr, true);
+		SF_ASSERT_EQ(storage.GetNodesCount(), 0);
+		SF_ASSERT_EQ(summary.totalScanElapsedTime.count(), 0);
+		SF_ASSERT_EQ(summary.pendingJobsPeakCount, 1);
+		SF_ASSERT_EQ(summary.scanJobStatistics.appliedJobCount, 0);
+		SF_ASSERT_EQ(summary.scanJobStatistics.rejectedJobCount, 1);
+	}
+
+	SF_TEST(file_tree_scan_coordinator, NullAttachAndReplaceTargetsAreRejectedWithoutScanning)
+	{
+		Storage storage;
+		Coordinator coordinator = MakeCoordinator(storage);
+		ScanInput input = MakeRootScanInput(SPACE_FOSSILS_FILE_SCANNER_FIXTURE_ROOT, 1);
+
+		coordinator.ScheduleJob(Planner::PlanAttachScan(input, nullptr));
+		coordinator.ScheduleJob(Planner::PlanReplaceScan(input, nullptr));
+
+		AssertRejected(coordinator.ProcessNext());
+		AssertRejected(coordinator.ProcessNext());
+		Summary summary = coordinator.GetSummary();
+
+		SF_ASSERT_EQ(coordinator.HasScheduledJobs(), false);
+		SF_ASSERT_EQ(storage.GetRoot() == nullptr, true);
+		SF_ASSERT_EQ(storage.GetNodesCount(), 0);
+		SF_ASSERT_EQ(summary.totalScanElapsedTime.count(), 0);
+		SF_ASSERT_EQ(summary.pendingJobsPeakCount, 2);
+		SF_ASSERT_EQ(summary.scanJobStatistics.appliedJobCount, 0);
+		SF_ASSERT_EQ(summary.scanJobStatistics.rejectedJobCount, 2);
 	}
 
 	SF_TEST(file_tree_scan_coordinator, ScheduleJobAdoptsRoot)
@@ -183,7 +227,7 @@ namespace space_fossils::tests {
 		AssertApplied(result);
 		const AppliedChange& appliedChange = result.appliedChange.value();
 
-		SF_ASSERT_EQ(appliedChange.type, IncomingChangeType::AdoptRoot);
+		SF_ASSERT_EQ(appliedChange.type, ChangeType::AdoptRoot);
 		SF_ASSERT_EQ(appliedChange.target == nullptr, true);
 		SF_ASSERT_EQ(appliedChange.addedRoot != nullptr, true);
 		SF_ASSERT_EQ(appliedChange.addedNodesCount, 4);
@@ -191,15 +235,15 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(storage.GetRoot() == appliedChange.addedRoot, true);
 		SF_ASSERT_EQ(storage.GetNodesCount(), 4);
 
-		Node& root = *storage.GetRoot();
-		AssertNameEquals(root, "root");
-		SF_ASSERT_EQ(root.entryType, EntryType::Directory);
-		SF_ASSERT_EQ(root.entryStatus, EntryStatus::Accessible);
-		SF_ASSERT_EQ(root.scanStatus, EntryScanStatus::Partial);
-		SF_ASSERT_EQ(CountChildren(root), 3);
+		const Node* root = storage.GetRoot();
+		AssertNameEquals(*root, "root");
+		SF_ASSERT_EQ(root->entryType, EntryType::Directory);
+		SF_ASSERT_EQ(root->entryStatus, EntryStatus::Accessible);
+		SF_ASSERT_EQ(root->scanStatus, EntryScanStatus::Partial);
+		SF_ASSERT_EQ(CountChildren(*root), 3);
 
-		Node* firstDirectory = RequireChild(root, "sub_directory_1");
-		Node* secondDirectory = RequireChild(root, "sub_directory_2");
+		Node* firstDirectory = RequireChild(*root, "sub_directory_1");
+		Node* secondDirectory = RequireChild(*root, "sub_directory_2");
 		SF_ASSERT_EQ(firstDirectory->scanStatus, EntryScanStatus::Pending);
 		SF_ASSERT_EQ(secondDirectory->scanStatus, EntryScanStatus::Pending);
 	}
@@ -213,7 +257,7 @@ namespace space_fossils::tests {
 		ApplyResult rootResult = coordinator.ProcessNext();
 		AssertApplied(rootResult);
 		const AppliedChange& rootChange = rootResult.appliedChange.value();
-		SF_ASSERT_EQ(rootChange.type, IncomingChangeType::AdoptRoot);
+		SF_ASSERT_EQ(rootChange.type, ChangeType::AdoptRoot);
 		SF_ASSERT_EQ(rootChange.addedNodesCount, 1);
 		SF_ASSERT_EQ(rootChange.removedNodesCount, 0);
 
@@ -227,7 +271,7 @@ namespace space_fossils::tests {
 		AssertApplied(replacementResult);
 		const AppliedChange& replacementChange = replacementResult.appliedChange.value();
 
-		SF_ASSERT_EQ(replacementChange.type, IncomingChangeType::Replace);
+		SF_ASSERT_EQ(replacementChange.type, ChangeType::Replace);
 		SF_ASSERT_EQ(replacementChange.target == oldRoot, true);
 		SF_ASSERT_EQ(replacementChange.addedRoot != nullptr, true);
 		SF_ASSERT_EQ(replacementChange.addedRoot == oldRoot, false);
@@ -235,6 +279,66 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(replacementChange.removedNodesCount, 1);
 		SF_ASSERT_EQ(storage.GetRoot() == replacementChange.addedRoot, true);
 		SF_ASSERT_EQ(storage.GetNodesCount(), 4);
+	}
+
+	SF_TEST(file_tree_scan_coordinator, RemoveJobDoesNotRunScannerOrScheduleFollowUpJobs)
+	{
+		Storage storage;
+		Coordinator coordinator = MakeCoordinator(storage);
+
+		ScheduleRootJob(coordinator, SPACE_FOSSILS_FILE_SCANNER_FIXTURE_ROOT, 3);
+		AssertApplied(coordinator.ProcessNext());
+		SF_ASSERT_EQ(coordinator.HasScheduledJobs(), false);
+
+		Node* root = storage.GetRoot();
+		const auto scanElapsedBeforeRemove = coordinator.GetSummary().totalScanElapsedTime;
+		Job removeJob;
+		removeJob.input = MakeRootScanInput(SPACE_FOSSILS_FILE_SCANNER_FIXTURE_INVALID_PATH, 1);
+		removeJob.applyAs = ChangeType::Remove;
+		removeJob.target = root;
+
+		coordinator.ScheduleJob(std::move(removeJob));
+		ApplyResult result = coordinator.ProcessNext();
+		Summary summary = coordinator.GetSummary();
+
+		AssertApplied(result);
+		SF_ASSERT_EQ(result.appliedChange->type, ChangeType::Remove);
+		SF_ASSERT_EQ(result.appliedChange->target == root, true);
+		SF_ASSERT_EQ(result.appliedChange->addedRoot == nullptr, true);
+		SF_ASSERT_EQ(storage.GetRoot() == nullptr, true);
+		SF_ASSERT_EQ(storage.GetNodesCount(), 0);
+		SF_ASSERT_EQ(coordinator.HasScheduledJobs(), false);
+		SF_ASSERT_EQ(summary.totalScanElapsedTime.count(), scanElapsedBeforeRemove.count());
+		SF_ASSERT_EQ(summary.pendingJobsPeakCount, 1);
+		SF_ASSERT_EQ(summary.scanJobStatistics.appliedJobCount, 2);
+		SF_ASSERT_EQ(summary.scanJobStatistics.rejectedJobCount, 0);
+	}
+
+	SF_TEST(file_tree_scan_coordinator, NullAndDetachedRemoveTargetsAreRejectedWithoutScanning)
+	{
+		Storage storage;
+		Coordinator coordinator = MakeCoordinator(storage);
+		Node detachedTarget;
+		Job nullTargetJob;
+		nullTargetJob.input = MakeRootScanInput(SPACE_FOSSILS_FILE_SCANNER_FIXTURE_INVALID_PATH, 1);
+		nullTargetJob.applyAs = ChangeType::Remove;
+		Job detachedTargetJob = nullTargetJob;
+		detachedTargetJob.target = &detachedTarget;
+
+		coordinator.ScheduleJob(std::move(nullTargetJob));
+		coordinator.ScheduleJob(std::move(detachedTargetJob));
+
+		AssertRejected(coordinator.ProcessNext());
+		AssertRejected(coordinator.ProcessNext());
+		Summary summary = coordinator.GetSummary();
+
+		SF_ASSERT_EQ(coordinator.HasScheduledJobs(), false);
+		SF_ASSERT_EQ(storage.GetRoot() == nullptr, true);
+		SF_ASSERT_EQ(storage.GetNodesCount(), 0);
+		SF_ASSERT_EQ(summary.totalScanElapsedTime.count(), 0);
+		SF_ASSERT_EQ(summary.pendingJobsPeakCount, 2);
+		SF_ASSERT_EQ(summary.scanJobStatistics.appliedJobCount, 0);
+		SF_ASSERT_EQ(summary.scanJobStatistics.rejectedJobCount, 2);
 	}
 
 	SF_TEST(file_tree_scan_coordinator, ProcessNextAfterRootScanProcessesScheduledPendingDirectory)
@@ -249,7 +353,7 @@ namespace space_fossils::tests {
 		AssertApplied(result);
 		const AppliedChange& appliedChange = result.appliedChange.value();
 
-		SF_ASSERT_EQ(appliedChange.type, IncomingChangeType::Replace);
+		SF_ASSERT_EQ(appliedChange.type, ChangeType::Replace);
 		SF_ASSERT_EQ(appliedChange.target != nullptr, true);
 		SF_ASSERT_EQ(appliedChange.addedRoot != nullptr, true);
 		SF_ASSERT_EQ(appliedChange.addedNodesCount >= 1, true);
@@ -267,14 +371,11 @@ namespace space_fossils::tests {
 		ApplyResult rootResult = coordinator.ProcessNext();
 		AssertApplied(rootResult);
 
-		Node& root = *storage.GetRoot();
-		Node* firstDirectory = RequireChild(root, "sub_directory_1");
-		Node* secondDirectory = RequireChild(root, "sub_directory_2");
+		const Node* root = storage.GetRoot();
+		Node* firstDirectory = RequireChild(*root, "sub_directory_1");
+		Node* secondDirectory = RequireChild(*root, "sub_directory_2");
 
-		IncomingChange removeChange;
-		removeChange.type = IncomingChangeType::Remove;
-		removeChange.target = firstDirectory;
-		std::optional<AppliedChange> removeResult = storage.ApplyChange(std::move(removeChange));
+		std::optional<AppliedChange> removeResult = storage.TryRemoveSubtree(firstDirectory);
 		SF_ASSERT_EQ(removeResult.has_value(), true);
 		SF_ASSERT_EQ(storage.GetNodesCount(), 3);
 
@@ -285,7 +386,7 @@ namespace space_fossils::tests {
 		AssertApplied(result);
 		const AppliedChange& appliedChange = result.appliedChange.value();
 
-		SF_ASSERT_EQ(appliedChange.type, IncomingChangeType::Replace);
+		SF_ASSERT_EQ(appliedChange.type, ChangeType::Replace);
 		SF_ASSERT_EQ(appliedChange.target == secondDirectory, true);
 		SF_ASSERT_EQ(appliedChange.addedRoot != nullptr, true);
 		SF_ASSERT_EQ(appliedChange.removedNodesCount, 1);
@@ -316,12 +417,12 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(storage.GetNodesCount(), 8);
 		SF_ASSERT_EQ(CountPendingDirectories(storage.GetRoot()), 0);
 
-		Node& root = *storage.GetRoot();
-		Node* firstDirectory = RequireChild(root, "sub_directory_1");
-		Node* secondDirectory = RequireChild(root, "sub_directory_2");
+		const Node* root = storage.GetRoot();
+		Node* firstDirectory = RequireChild(*root, "sub_directory_1");
+		Node* secondDirectory = RequireChild(*root, "sub_directory_2");
 		Node* nestedDirectory = RequireChild(*secondDirectory, "sub_directory_3");
 
-		SF_ASSERT_EQ(root.scanStatus, EntryScanStatus::Complete);
+		SF_ASSERT_EQ(root->scanStatus, EntryScanStatus::Complete);
 		SF_ASSERT_EQ(firstDirectory->scanStatus, EntryScanStatus::Complete);
 		SF_ASSERT_EQ(secondDirectory->scanStatus, EntryScanStatus::Complete);
 		SF_ASSERT_EQ(nestedDirectory->scanStatus, EntryScanStatus::Complete);
@@ -332,6 +433,7 @@ namespace space_fossils::tests {
 		const Summary summary = coordinator.GetSummary();
 		AssertSummaryMatchesStorage(summary, storage);
 		SF_ASSERT_EQ(summary.totalScanElapsedTime.count() >= 0, true);
+		SF_ASSERT_EQ(summary.pendingJobsPeakCount, 2);
 		SF_ASSERT_EQ(summary.scanJobStatistics.emptyProcessCalls, 0);
 		SF_ASSERT_EQ(summary.scanJobStatistics.appliedJobCount, 4);
 		SF_ASSERT_EQ(summary.scanJobStatistics.rejectedJobCount, 0);
@@ -367,17 +469,17 @@ namespace space_fossils::tests {
 		AssertApplied(result);
 		const AppliedChange& appliedChange = result.appliedChange.value();
 
-		SF_ASSERT_EQ(appliedChange.type, IncomingChangeType::AdoptRoot);
+		SF_ASSERT_EQ(appliedChange.type, ChangeType::AdoptRoot);
 		SF_ASSERT_EQ(appliedChange.addedNodesCount, 1);
 		SF_ASSERT_EQ(appliedChange.removedNodesCount, 0);
 		SF_ASSERT_EQ(storage.GetRoot() == appliedChange.addedRoot, true);
 		SF_ASSERT_EQ(storage.GetNodesCount(), 1);
 
-		Node& root = *storage.GetRoot();
-		AssertNameEquals(root, "root");
-		SF_ASSERT_EQ(root.entryType, EntryType::Unknown);
-		SF_ASSERT_EQ(root.entryStatus, EntryStatus::NotFound);
-		SF_ASSERT_EQ(root.scanStatus, EntryScanStatus::Error);
+		const Node* root = storage.GetRoot();
+		AssertNameEquals(*root, "root");
+		SF_ASSERT_EQ(root->entryType, EntryType::Unknown);
+		SF_ASSERT_EQ(root->entryStatus, EntryStatus::NotFound);
+		SF_ASSERT_EQ(root->scanStatus, EntryScanStatus::Error);
 		SF_ASSERT_EQ(coordinator.HasScheduledJobs(), false);
 		AssertNoJob(coordinator.ProcessNext());
 	}

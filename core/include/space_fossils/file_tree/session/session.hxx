@@ -1,7 +1,6 @@
 #pragma once
 
 #include "space_fossils/file_tree/model/types.hxx"
-#include "space_fossils/file_tree/model/node_handle.hxx"
 
 #include <cstddef>
 #include <vector>
@@ -20,7 +19,7 @@ namespace space_fossils::core::file_tree {
 
 		const Storage& GetStorage() const;
 		const Node* GetRoot() const;
-		NodeHandle GetCurrentNodeHandle();
+		const Node* GetCurrentNode();
 		NativeString GetCurrentNativePath();
 		bool TrySetCurrentNode(const Node* node);
 		const std::vector<const Node*>& GetAvailableChildren();
@@ -34,7 +33,9 @@ namespace space_fossils::core::file_tree {
 
 	private:
 		const Storage& storage;
-		NodeHandle nodeHandle;
+		const Node* currentNode = nullptr;
+		NativeString currentNativePath;
+		StorageVersion knownStorageVersion = 0;
 		std::vector<const Node*> availableChildren;
 		std::size_t focusedChildIndex = 0;
 	};
