@@ -26,11 +26,11 @@ namespace space_fossils::core::file_tree {
 		explicit Storage(StorageConfig config = {});
 		~Storage() = default;
 
-		Node* GetRoot();
-		const Node* GetRoot() const;
-
 		Storage(const Storage&) = delete;
 		Storage& operator=(const Storage&) = delete;
+
+		Node* GetRoot();
+		const Node* GetRoot() const;
 
 		std::size_t GetNodesCount() const;
 
