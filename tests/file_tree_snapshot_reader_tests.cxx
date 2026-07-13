@@ -7,6 +7,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <limits>
 #include <optional>
 #include <sstream>
 #include <string>
@@ -86,6 +87,26 @@ namespace space_fossils::tests {
 		std::size_t BodyOffset(const std::string& bytes)
 		{
 			return NativeCharSizeOffset(bytes) + sizeof(std::uint8_t);
+		}
+
+		std::size_t RootEntryTypeOffset(const std::string& bytes)
+		{
+			std::size_t offset = BodyOffset(bytes);
+			const std::uint64_t nameByteLength = ReadValueAt<std::uint64_t>(bytes, offset);
+			offset += static_cast<std::size_t>(nameByteLength);
+			offset += sizeof(std::uint64_t);
+
+			return offset;
+		}
+
+		std::size_t RootEntryStatusOffset(const std::string& bytes)
+		{
+			return RootEntryTypeOffset(bytes) + sizeof(std::uint8_t);
+		}
+
+		std::size_t RootScanStatusOffset(const std::string& bytes)
+		{
+			return RootEntryStatusOffset(bytes) + sizeof(std::uint8_t);
 		}
 
 		std::size_t RootChildCountOffset(const std::string& bytes)
@@ -312,6 +333,56 @@ namespace space_fossils::tests {
 		const std::uint64_t nameCharactersPastEnd = static_cast<std::uint64_t>(bytes.size() / sizeof(NativeChar) + 1);
 		const std::uint64_t tooLargeNameByteLength = nameCharactersPastEnd * sizeof(NativeChar);
 		WriteValueAt(bytes, BodyOffset(bytes), tooLargeNameByteLength);
+
+		std::optional<TreePoolBundle> bundle = ReadSnapshot(bytes);
+
+		SF_ASSERT_EQ(bundle.has_value(), false);
+	}
+
+	SF_TEST(file_tree_snapshot_reader, RejectsNameLengthPastNameRefCapacity)
+	{
+		TestTree tree;
+		std::string bytes = WriteSnapshot(tree.root);
+		const std::uint64_t invalidCharacterCount =
+			static_cast<std::uint64_t>(std::numeric_limits<std::uint32_t>::max()) + 1;
+		const std::uint64_t invalidNameByteLength = invalidCharacterCount * sizeof(NativeChar);
+		WriteValueAt(bytes, BodyOffset(bytes), invalidNameByteLength);
+
+		std::optional<TreePoolBundle> bundle = ReadSnapshot(bytes);
+
+		SF_ASSERT_EQ(bundle.has_value(), false);
+	}
+
+	SF_TEST(file_tree_snapshot_reader, RejectsUnknownEntryType)
+	{
+		TestTree tree;
+		std::string bytes = WriteSnapshot(tree.root);
+		const std::uint8_t invalidEntryType = std::numeric_limits<std::uint8_t>::max();
+		WriteValueAt(bytes, RootEntryTypeOffset(bytes), invalidEntryType);
+
+		std::optional<TreePoolBundle> bundle = ReadSnapshot(bytes);
+
+		SF_ASSERT_EQ(bundle.has_value(), false);
+	}
+
+	SF_TEST(file_tree_snapshot_reader, RejectsUnknownEntryStatus)
+	{
+		TestTree tree;
+		std::string bytes = WriteSnapshot(tree.root);
+		const std::uint8_t invalidEntryStatus = std::numeric_limits<std::uint8_t>::max();
+		WriteValueAt(bytes, RootEntryStatusOffset(bytes), invalidEntryStatus);
+
+		std::optional<TreePoolBundle> bundle = ReadSnapshot(bytes);
+
+		SF_ASSERT_EQ(bundle.has_value(), false);
+	}
+
+	SF_TEST(file_tree_snapshot_reader, RejectsUnknownEntryScanStatus)
+	{
+		TestTree tree;
+		std::string bytes = WriteSnapshot(tree.root);
+		const std::uint8_t invalidScanStatus = std::numeric_limits<std::uint8_t>::max();
+		WriteValueAt(bytes, RootScanStatusOffset(bytes), invalidScanStatus);
 
 		std::optional<TreePoolBundle> bundle = ReadSnapshot(bytes);
 

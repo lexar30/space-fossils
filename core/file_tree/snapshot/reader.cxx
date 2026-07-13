@@ -186,12 +186,24 @@ namespace space_fossils::core::file_tree::snapshot {
 
 		if (nameByteLength > 0) {
 			NativeString name;
+			const std::uint64_t characterCount =
+				nameByteLength / sizeof(NativeChar);
+
+			if (characterCount >
+				std::numeric_limits<std::uint32_t>::max()) {
+				return false;
+			}
+
 			name.resize(static_cast<std::size_t>(nameByteLength / sizeof(NativeChar)));
 
 			if (!TryReadBytes(in, name.data(), nameByteLength)) {
 				return false;
 			}
 			node->name = bundle.namePool->Store(name);
+
+			if (!name.empty() && node->name.data == nullptr) {
+				return false;
+			}
 		}
 
 		std::uint64_t logicalSize = 0;
@@ -204,16 +216,27 @@ namespace space_fossils::core::file_tree::snapshot {
 		if (!TryReadValue(in, entryType)) {
 			return false;
 		}
+		if (entryType > static_cast<std::uint8_t>(EntryType::Other)) {
+			return false;
+		}
 		node->entryType = static_cast<EntryType>(entryType);
 
 		std::uint8_t entryStatus = 0;
 		if (!TryReadValue(in, entryStatus)) {
 			return false;
 		}
+		if (entryStatus >
+			static_cast<std::uint8_t>(EntryStatus::Error)) {
+			return false;
+		}
 		node->entryStatus = static_cast<EntryStatus>(entryStatus);
 
 		std::uint8_t scanStatus = 0;
 		if (!TryReadValue(in, scanStatus)) {
+			return false;
+		}
+		if (scanStatus >
+			static_cast<std::uint8_t>(EntryScanStatus::Error)) {
 			return false;
 		}
 		node->scanStatus = static_cast<EntryScanStatus>(scanStatus);
