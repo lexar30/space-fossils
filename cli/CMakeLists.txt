@@ -2,7 +2,6 @@ add_library (space_fossils_cli STATIC)
 
 target_sources(space_fossils_cli
 	PRIVATE
-		app_state.cxx
 		cli_app.cxx
 		cli_renderer.cxx
 		command_dispatcher.cxx

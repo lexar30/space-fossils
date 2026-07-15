@@ -3,16 +3,36 @@
 #include "space_fossils/core/file_tree/storage/storage.hxx"
 #include "space_fossils/core/file_tree/session/session.hxx"
 
+#include <memory>
+
 namespace space_fossils::cli {
 	using space_fossils::core::file_tree::Storage;
 	using space_fossils::core::file_tree::Session;
 
-	struct AppState
+	struct TreeContext
 	{
 		Storage storage;
-		Session session;
+		Session session{ storage };
+	};
 
+	struct AppState
+	{
+		std::unique_ptr<TreeContext> context = std::make_unique<TreeContext>();
 		bool isQuitRequested = false;
-		bool isStorageFilled = false;
+
+		bool HasActiveTree() const
+		{
+			return context->storage.GetRoot() != nullptr;
+		}
+
+		bool IsFreshStorage() const
+		{
+			return context->storage.GetVersion() == 0;
+		}
+
+		void ResetTreeContext()
+		{
+			context = std::make_unique<TreeContext>();
+		}
 	};
 }
