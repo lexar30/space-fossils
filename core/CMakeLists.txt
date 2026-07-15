@@ -1,0 +1,65 @@
+add_library (space_fossils_core STATIC)
+
+target_sources(space_fossils_core
+	PRIVATE
+		memory/memory_arena.cxx
+		file_tree/memory/name_pool.cxx
+		file_tree/memory/node_pool.cxx
+		file_tree/storage/storage.cxx
+		file_tree/scan/scanner.cxx
+		file_tree/scan/scheduler.cxx
+		file_tree/scan/coordinator.cxx
+		file_tree/scan/planner.cxx
+		file_tree/scan/operations.cxx
+		file_tree/snapshot/reader.cxx
+		file_tree/snapshot/writer.cxx
+		file_tree/snapshot/operations.cxx
+		file_tree/report/text_writer.cxx
+		file_tree/query/tree_query.cxx
+		file_tree/session/session.cxx
+		file_tree/session/session_operations.cxx
+		size_formatter.cxx
+		operation_timer.cxx
+
+		include/space_fossils/core/version.hxx
+		include/space_fossils/core/memory/memory_arena.hxx
+		include/space_fossils/core/file_tree/memory/name_pool.hxx
+		include/space_fossils/core/file_tree/memory/node_pool.hxx
+		include/space_fossils/core/file_tree/model/default_constants.hxx
+		include/space_fossils/core/file_tree/change_type.hxx
+		include/space_fossils/core/file_tree/scan/planning_config.hxx
+		include/space_fossils/core/file_tree/scan/scan_input.hxx
+		include/space_fossils/core/file_tree/scan/job.hxx
+		include/space_fossils/core/file_tree/scan/apply_result.hxx
+		include/space_fossils/core/file_tree/storage/storage.hxx
+		include/space_fossils/core/file_tree/storage/storage_change.hxx
+		include/space_fossils/core/file_tree/model/tree_pool_bundle.hxx
+		include/space_fossils/core/file_tree/scan/scanner.hxx
+		include/space_fossils/core/file_tree/scan/scheduler.hxx
+		include/space_fossils/core/file_tree/scan/coordinator.hxx
+		include/space_fossils/core/file_tree/scan/planner.hxx
+		include/space_fossils/core/file_tree/scan/operations.hxx
+		include/space_fossils/core/file_tree/report/text_writer.hxx
+		include/space_fossils/core/file_tree/snapshot/reader.hxx
+		include/space_fossils/core/file_tree/snapshot/writer.hxx
+		include/space_fossils/core/file_tree/snapshot/operations.hxx
+		include/space_fossils/core/file_tree/query/tree_query.hxx
+		include/space_fossils/core/file_tree/session/session.hxx
+		include/space_fossils/core/file_tree/session/session_operations.hxx
+		include/space_fossils/core/core.hxx
+		include/space_fossils/core/size_formatter.hxx
+		include/space_fossils/core/operation_timer.hxx
+		include/space_fossils/core/file_tree/scan/summary.hxx
+		include/space_fossils/core/file_tree/model/types.hxx
+		include/space_fossils/core/file_tree/model/node.hxx
+)
+
+target_include_directories(space_fossils_core
+	PUBLIC
+		${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+target_compile_features(space_fossils_core
+	PUBLIC
+		cxx_std_20
+)
