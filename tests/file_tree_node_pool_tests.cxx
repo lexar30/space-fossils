@@ -1,6 +1,6 @@
-#include "space_fossils/file_tree/memory/node_pool.hxx"
+#include "space_fossils/core/file_tree/memory/node_pool.hxx"
 
-#include "space_fossils/file_tree/model/node.hxx"
+#include "space_fossils/core/file_tree/model/node.hxx"
 #include "space_fossils_tests/micro_test_framework.hxx"
 
 #include <utility>

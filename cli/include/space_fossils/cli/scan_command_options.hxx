@@ -1,6 +1,6 @@
 #pragma once
 
-#include "space_fossils/file_tree/model/default_constants.hxx"
+#include "space_fossils/core/file_tree/model/default_constants.hxx"
 
 #include <cstddef>
 #include <filesystem>

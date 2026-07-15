@@ -1,13 +1,13 @@
-#include "space_fossils/file_tree/snapshot/reader.hxx"
+#include "space_fossils/core/file_tree/snapshot/reader.hxx"
 
-#include "space_fossils/file_tree/model/default_constants.hxx"
-#include "space_fossils/file_tree/memory/name_pool.hxx"
-#include "space_fossils/file_tree/model/node.hxx"
-#include "space_fossils/file_tree/memory/node_pool.hxx"
-#include "space_fossils/file_tree/model/types.hxx"
-#include "space_fossils/file_tree/model/tree_pool_bundle.hxx"
-#include "space_fossils/file_tree/snapshot/writer.hxx"
-#include "space_fossils/version.hxx"
+#include "space_fossils/core/file_tree/model/default_constants.hxx"
+#include "space_fossils/core/file_tree/memory/name_pool.hxx"
+#include "space_fossils/core/file_tree/model/node.hxx"
+#include "space_fossils/core/file_tree/memory/node_pool.hxx"
+#include "space_fossils/core/file_tree/model/types.hxx"
+#include "space_fossils/core/file_tree/model/tree_pool_bundle.hxx"
+#include "space_fossils/core/file_tree/snapshot/writer.hxx"
+#include "space_fossils/core/version.hxx"
 
 #include <array>
 #include <cstdint>

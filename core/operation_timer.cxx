@@ -1,4 +1,4 @@
-#include "space_fossils/operation_timer.hxx"
+#include "space_fossils/core/operation_timer.hxx"
 
 namespace space_fossils::core {
 	void OperationTimer::Start()

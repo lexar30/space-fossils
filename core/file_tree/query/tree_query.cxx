@@ -1,7 +1,7 @@
-#include "space_fossils/file_tree/query/tree_query.hxx"
+#include "space_fossils/core/file_tree/query/tree_query.hxx"
 
-#include "space_fossils/file_tree/model/node.hxx"
-#include "space_fossils/file_tree/model/types.hxx"
+#include "space_fossils/core/file_tree/model/node.hxx"
+#include "space_fossils/core/file_tree/model/types.hxx"
 
 #include <ranges>
 

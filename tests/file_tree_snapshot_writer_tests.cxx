@@ -1,7 +1,7 @@
-#include "space_fossils/file_tree/snapshot/writer.hxx"
+#include "space_fossils/core/file_tree/snapshot/writer.hxx"
 
-#include "space_fossils/file_tree/model/node.hxx"
-#include "space_fossils/version.hxx"
+#include "space_fossils/core/file_tree/model/node.hxx"
+#include "space_fossils/core/version.hxx"
 #include "space_fossils_tests/micro_test_framework.hxx"
 
 #include <chrono>

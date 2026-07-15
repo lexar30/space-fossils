@@ -1,4 +1,4 @@
-#include "space_fossils/size_formatter.hxx"
+#include "space_fossils/core/size_formatter.hxx"
 #include "space_fossils_tests/micro_test_framework.hxx"
 
 #include <cstdint>

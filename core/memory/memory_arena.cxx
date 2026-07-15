@@ -1,4 +1,4 @@
-#include "space_fossils/memory/memory_arena.hxx"
+#include "space_fossils/core/memory/memory_arena.hxx"
 
 #include <algorithm>
 #include <limits>

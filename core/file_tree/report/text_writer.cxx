@@ -1,6 +1,6 @@
-#include "space_fossils/file_tree/report/text_writer.hxx"
+#include "space_fossils/core/file_tree/report/text_writer.hxx"
 
-#include "space_fossils/file_tree/model/node.hxx"
+#include "space_fossils/core/file_tree/model/node.hxx"
 
 #include <filesystem>
 #include <string>

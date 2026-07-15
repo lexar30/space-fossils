@@ -1,5 +1,5 @@
-#include "space_fossils/file_tree/scan/scanner.hxx"
-#include "space_fossils/file_tree/model/tree_pool_bundle.hxx"
+#include "space_fossils/core/file_tree/scan/scanner.hxx"
+#include "space_fossils/core/file_tree/model/tree_pool_bundle.hxx"
 
 #include <filesystem>
 #include <memory>

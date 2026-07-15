@@ -1,4 +1,4 @@
-#include "space_fossils/operation_timer.hxx"
+#include "space_fossils/core/operation_timer.hxx"
 #include "space_fossils_tests/micro_test_framework.hxx"
 
 namespace space_fossils::tests {

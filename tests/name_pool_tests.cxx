@@ -1,4 +1,4 @@
-#include "space_fossils/file_tree/memory/name_pool.hxx"
+#include "space_fossils/core/file_tree/memory/name_pool.hxx"
 
 #include "space_fossils_tests/micro_test_framework.hxx"
 

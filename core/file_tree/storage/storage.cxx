@@ -1,7 +1,7 @@
-#include "space_fossils/file_tree/storage/storage.hxx"
+#include "space_fossils/core/file_tree/storage/storage.hxx"
 
-#include "space_fossils/file_tree/query/tree_query.hxx"
-#include "space_fossils/file_tree/model/tree_pool_bundle.hxx"
+#include "space_fossils/core/file_tree/query/tree_query.hxx"
+#include "space_fossils/core/file_tree/model/tree_pool_bundle.hxx"
 
 #include <optional>
 #include <utility>

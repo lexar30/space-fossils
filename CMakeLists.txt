@@ -37,37 +37,37 @@ target_sources(space_fossils_core
 		core/size_formatter.cxx
 		core/operation_timer.cxx
 
-		core/include/space_fossils/version.hxx
-		core/include/space_fossils/memory/memory_arena.hxx
-		core/include/space_fossils/file_tree/memory/name_pool.hxx
-		core/include/space_fossils/file_tree/memory/node_pool.hxx
-		core/include/space_fossils/file_tree/model/default_constants.hxx
-		core/include/space_fossils/file_tree/change_type.hxx
-		core/include/space_fossils/file_tree/scan/planning_config.hxx
-		core/include/space_fossils/file_tree/scan/scan_input.hxx
-		core/include/space_fossils/file_tree/scan/job.hxx
-		core/include/space_fossils/file_tree/scan/apply_result.hxx
-		core/include/space_fossils/file_tree/storage/storage.hxx
-		core/include/space_fossils/file_tree/storage/storage_change.hxx
-		core/include/space_fossils/file_tree/model/tree_pool_bundle.hxx
-		core/include/space_fossils/file_tree/scan/scanner.hxx
-		core/include/space_fossils/file_tree/scan/scheduler.hxx
-		core/include/space_fossils/file_tree/scan/coordinator.hxx
-		core/include/space_fossils/file_tree/scan/planner.hxx
-		core/include/space_fossils/file_tree/scan/operations.hxx
-		core/include/space_fossils/file_tree/report/text_writer.hxx
-		core/include/space_fossils/file_tree/snapshot/reader.hxx
-		core/include/space_fossils/file_tree/snapshot/writer.hxx
-		core/include/space_fossils/file_tree/snapshot/operations.hxx
-		core/include/space_fossils/file_tree/query/tree_query.hxx
-		core/include/space_fossils/file_tree/session/session.hxx
-		core/include/space_fossils/file_tree/session/session_operations.hxx
-		core/include/space_fossils/core.hxx
-		core/include/space_fossils/size_formatter.hxx
-		core/include/space_fossils/operation_timer.hxx
-		core/include/space_fossils/file_tree/scan/summary.hxx
-		core/include/space_fossils/file_tree/model/types.hxx
-		core/include/space_fossils/file_tree/model/node.hxx
+		core/include/space_fossils/core/version.hxx
+		core/include/space_fossils/core/memory/memory_arena.hxx
+		core/include/space_fossils/core/file_tree/memory/name_pool.hxx
+		core/include/space_fossils/core/file_tree/memory/node_pool.hxx
+		core/include/space_fossils/core/file_tree/model/default_constants.hxx
+		core/include/space_fossils/core/file_tree/change_type.hxx
+		core/include/space_fossils/core/file_tree/scan/planning_config.hxx
+		core/include/space_fossils/core/file_tree/scan/scan_input.hxx
+		core/include/space_fossils/core/file_tree/scan/job.hxx
+		core/include/space_fossils/core/file_tree/scan/apply_result.hxx
+		core/include/space_fossils/core/file_tree/storage/storage.hxx
+		core/include/space_fossils/core/file_tree/storage/storage_change.hxx
+		core/include/space_fossils/core/file_tree/model/tree_pool_bundle.hxx
+		core/include/space_fossils/core/file_tree/scan/scanner.hxx
+		core/include/space_fossils/core/file_tree/scan/scheduler.hxx
+		core/include/space_fossils/core/file_tree/scan/coordinator.hxx
+		core/include/space_fossils/core/file_tree/scan/planner.hxx
+		core/include/space_fossils/core/file_tree/scan/operations.hxx
+		core/include/space_fossils/core/file_tree/report/text_writer.hxx
+		core/include/space_fossils/core/file_tree/snapshot/reader.hxx
+		core/include/space_fossils/core/file_tree/snapshot/writer.hxx
+		core/include/space_fossils/core/file_tree/snapshot/operations.hxx
+		core/include/space_fossils/core/file_tree/query/tree_query.hxx
+		core/include/space_fossils/core/file_tree/session/session.hxx
+		core/include/space_fossils/core/file_tree/session/session_operations.hxx
+		core/include/space_fossils/core/core.hxx
+		core/include/space_fossils/core/size_formatter.hxx
+		core/include/space_fossils/core/operation_timer.hxx
+		core/include/space_fossils/core/file_tree/scan/summary.hxx
+		core/include/space_fossils/core/file_tree/model/types.hxx
+		core/include/space_fossils/core/file_tree/model/node.hxx
 )
 
 target_include_directories(space_fossils_core

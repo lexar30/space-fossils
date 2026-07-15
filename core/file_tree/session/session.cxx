@@ -1,8 +1,8 @@
-#include "space_fossils/file_tree/session/session.hxx"
+#include "space_fossils/core/file_tree/session/session.hxx"
 
-#include "space_fossils/file_tree/model/node.hxx"
-#include "space_fossils/file_tree/storage/storage.hxx"
-#include "space_fossils/file_tree/query/tree_query.hxx"
+#include "space_fossils/core/file_tree/model/node.hxx"
+#include "space_fossils/core/file_tree/storage/storage.hxx"
+#include "space_fossils/core/file_tree/query/tree_query.hxx"
 
 namespace space_fossils::core::file_tree {
 	Session::Session(const Storage& storage)

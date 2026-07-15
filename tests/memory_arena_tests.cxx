@@ -1,4 +1,4 @@
-#include "space_fossils/memory/memory_arena.hxx"
+#include "space_fossils/core/memory/memory_arena.hxx"
 #include "space_fossils_tests/micro_test_framework.hxx"
 
 #include <cstddef>

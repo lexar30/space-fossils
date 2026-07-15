@@ -1,7 +1,7 @@
-#include "space_fossils/file_tree/scan/planner.hxx"
+#include "space_fossils/core/file_tree/scan/planner.hxx"
 
-#include "space_fossils/file_tree/model/node.hxx"
-#include "space_fossils/file_tree/storage/storage_change.hxx"
+#include "space_fossils/core/file_tree/model/node.hxx"
+#include "space_fossils/core/file_tree/storage/storage_change.hxx"
 #include "space_fossils_tests/micro_test_framework.hxx"
 
 #include <cstdint>

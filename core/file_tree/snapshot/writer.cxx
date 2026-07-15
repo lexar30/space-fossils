@@ -1,8 +1,8 @@
-#include "space_fossils/file_tree/snapshot/writer.hxx"
+#include "space_fossils/core/file_tree/snapshot/writer.hxx"
 
-#include "space_fossils/file_tree/model/node.hxx"
-#include "space_fossils/file_tree/model/types.hxx"
-#include "space_fossils/version.hxx"
+#include "space_fossils/core/file_tree/model/node.hxx"
+#include "space_fossils/core/file_tree/model/types.hxx"
+#include "space_fossils/core/version.hxx"
 
 #include <chrono>
 #include <cstdint>
