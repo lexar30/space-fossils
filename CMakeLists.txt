@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.24)
 project(space-fossils LANGUAGES CXX)
 
 add_library (space_fossils_core STATIC)
+add_library (space_fossils_cli STATIC)
 add_executable (space_fossils_app)
 add_executable (space_fossils_tests)
 
@@ -79,7 +80,7 @@ target_compile_features(space_fossils_core
 		cxx_std_20
 )
 
-target_sources(space_fossils_app
+target_sources(space_fossils_cli
 	PRIVATE
 		app/app_state.cxx
 		app/app_state.hxx
@@ -88,16 +89,36 @@ target_sources(space_fossils_app
 		app/cli_app.hxx
 		app/cli_renderer.cxx
 		app/cli_renderer.hxx
+		app/command.hxx
 		app/command_dispatcher.cxx
 		app/command_dispatcher.hxx
 		app/command_parser.cxx
 		app/command_parser.hxx
+		app/command_result.hxx
+		app/command_spec.hxx
+		app/command_type.hxx
+		app/parse_error.hxx
+		app/parsed_command.hxx
+)
+
+target_include_directories(space_fossils_cli
+	PUBLIC
+		app
+)
+
+target_link_libraries(space_fossils_cli
+	PUBLIC
+		space_fossils_core
+)
+
+target_sources(space_fossils_app
+	PRIVATE
 		app/main.cxx
 )
 
 target_link_libraries(space_fossils_app
 	PRIVATE
-		space_fossils_core
+		space_fossils_cli
 )
 
 target_sources(space_fossils_tests
@@ -118,6 +139,7 @@ target_include_directories(space_fossils_tests
 target_link_libraries(space_fossils_tests
 	PRIVATE
 		space_fossils_core
+		space_fossils_cli
 )
 
 target_compile_definitions(space_fossils_tests
