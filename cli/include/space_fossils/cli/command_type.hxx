@@ -7,6 +7,9 @@ namespace space_fossils::cli {
 		, Help
 		, Quit
 
+		, SetToDecimalUnits
+		, SetToBinaryUnits
+
 		, Scan
 
 		, Save

@@ -9,7 +9,7 @@ namespace space_fossils::cli {
 
 		if (parsedCommand.type == CommandType::Undefined) {
 			result.status = CommandStatus::ExecutionFailed;
-			result.message = "Undefined parsed command.";
+			result.message = "Undefined parsed command";
 			return result;
 		}
 
@@ -17,11 +17,11 @@ namespace space_fossils::cli {
 			if (!appState.isQuitRequested) {
 				appState.isQuitRequested = true;
 				result.status = CommandStatus::Successful;
-				result.message = "Quitting.";
+				result.message = "Quitting";
 			}
 			else {
 				result.status = CommandStatus::ExecutionFailed;
-				result.message = "Quitting is in process.";
+				result.message = "Quitting is in process";
 			}
 
 			return result;
@@ -40,7 +40,7 @@ namespace space_fossils::cli {
 		}
 
 		result.status = CommandStatus::ExecutionFailed;
-		result.message = "Unknown command.";
+		result.message = "Unknown command";
 
 		return result;
 	}

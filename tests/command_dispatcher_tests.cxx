@@ -61,7 +61,7 @@ namespace space_fossils::tests {
 		CommandResult result = CommandDispatcher::Dispatch(MakeCommand(CommandType::Undefined), state);
 
 		SF_ASSERT_EQ(result.status, CommandStatus::ExecutionFailed);
-		SF_ASSERT_EQ(result.message, "Undefined parsed command.");
+		SF_ASSERT_EQ(result.message, "Undefined parsed command");
 		SF_ASSERT_EQ(state.isQuitRequested, false);
 		SF_ASSERT_EQ(state.context.get() == originalContext, true);
 		SF_ASSERT_EQ(state.context->storage.GetVersion(), originalVersion);
@@ -78,7 +78,7 @@ namespace space_fossils::tests {
 		CommandResult result = CommandDispatcher::Dispatch(MakeCommand(CommandType::Quit), state);
 
 		SF_ASSERT_EQ(result.status, CommandStatus::Successful);
-		SF_ASSERT_EQ(result.message, "Quitting.");
+		SF_ASSERT_EQ(result.message, "Quitting");
 		SF_ASSERT_EQ(state.isQuitRequested, true);
 		SF_ASSERT_EQ(state.context.get() == originalContext, true);
 		SF_ASSERT_EQ(state.context->storage.GetVersion(), originalVersion);
@@ -93,7 +93,7 @@ namespace space_fossils::tests {
 		CommandResult result = CommandDispatcher::Dispatch(MakeCommand(CommandType::Quit), state);
 
 		SF_ASSERT_EQ(result.status, CommandStatus::ExecutionFailed);
-		SF_ASSERT_EQ(result.message, "Quitting is in process.");
+		SF_ASSERT_EQ(result.message, "Quitting is in process");
 		SF_ASSERT_EQ(state.isQuitRequested, true);
 	}
 
@@ -124,7 +124,7 @@ namespace space_fossils::tests {
 			CommandResult result = CommandDispatcher::Dispatch(MakeCommand(type), state);
 
 			SF_ASSERT_EQ(result.status, CommandStatus::ExecutionFailed);
-			SF_ASSERT_EQ(result.message, "Unknown command.");
+			SF_ASSERT_EQ(result.message, "Unknown command");
 			SF_ASSERT_EQ(state.isQuitRequested, false);
 			SF_ASSERT_EQ(state.context.get() == originalContext, true);
 			SF_ASSERT_EQ(state.context->storage.GetVersion(), originalVersion);
@@ -143,7 +143,7 @@ namespace space_fossils::tests {
 		CommandResult result = CommandDispatcher::Dispatch(MakeCommand(invalidType), state);
 
 		SF_ASSERT_EQ(result.status, CommandStatus::ExecutionFailed);
-		SF_ASSERT_EQ(result.message, "Unknown command.");
+		SF_ASSERT_EQ(result.message, "Unknown command");
 		SF_ASSERT_EQ(state.isQuitRequested, false);
 		SF_ASSERT_EQ(state.context.get() == originalContext, true);
 		SF_ASSERT_EQ(state.context->storage.GetVersion(), originalVersion);
