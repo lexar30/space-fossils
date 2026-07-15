@@ -1,4 +1,4 @@
-#include "command_parser.hxx"
+#include "space_fossils/cli/command_parser.hxx"
 
 #include "space_fossils_tests/micro_test_framework.hxx"
 
@@ -6,7 +6,7 @@
 
 namespace space_fossils::tests {
 	namespace {
-		using namespace space_fossils::app;
+		using namespace space_fossils::cli;
 
 		void AssertParseFailure(std::string_view input, ParseStatus expectedStatus)
 		{

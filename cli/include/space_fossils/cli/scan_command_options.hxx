@@ -5,7 +5,7 @@
 #include <cstddef>
 #include <filesystem>
 
-namespace space_fossils::app {
+namespace space_fossils::cli {
 	struct ScanCommandOptions
 	{
 		std::filesystem::path inputPath;

@@ -1,11 +1,11 @@
 #pragma once
 
-#include "command_type.hxx"
+#include "space_fossils/cli/command_type.hxx"
 
 #include <string>
 #include <vector>
 
-namespace space_fossils::app {
+namespace space_fossils::cli {
 	struct ParsedCommand
 	{
 		CommandType type = CommandType::Undefined;

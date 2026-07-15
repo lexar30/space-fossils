@@ -1,12 +1,12 @@
 #pragma once
 
-#include "command_type.hxx"
+#include "space_fossils/cli/command_type.hxx"
 
 #include <array>
 #include <cstddef>
 #include <string_view>
 
-namespace space_fossils::app {
+namespace space_fossils::cli {
 	struct CommandSpec
 	{
 		const CommandType type;

@@ -1,14 +1,14 @@
 #pragma once
 
-#include "command_type.hxx"
-#include "parsed_command.hxx"
+#include "space_fossils/cli/command_type.hxx"
+#include "space_fossils/cli/parsed_command.hxx"
 
 #include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
 
-namespace space_fossils::app {
+namespace space_fossils::cli {
 	enum class ParseStatus
 	{
 		EmptyInput

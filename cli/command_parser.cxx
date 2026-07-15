@@ -1,10 +1,10 @@
-#include "command_parser.hxx"
-#include "command_spec.hxx"
+#include "space_fossils/cli/command_parser.hxx"
+#include "space_fossils/cli/command_spec.hxx"
 
 #include <algorithm>
 #include <cctype>
 
-namespace space_fossils::app {
+namespace space_fossils::cli {
 	ParsedResult CommandParser::TryParse(std::string_view input)
 	{
 		ParsedResult result;

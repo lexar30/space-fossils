@@ -82,28 +82,29 @@ target_compile_features(space_fossils_core
 
 target_sources(space_fossils_cli
 	PRIVATE
-		app/app_state.cxx
-		app/app_state.hxx
-		app/scan_command_options.hxx
-		app/cli_app.cxx
-		app/cli_app.hxx
-		app/cli_renderer.cxx
-		app/cli_renderer.hxx
-		app/command.hxx
-		app/command_dispatcher.cxx
-		app/command_dispatcher.hxx
-		app/command_parser.cxx
-		app/command_parser.hxx
-		app/command_result.hxx
-		app/command_spec.hxx
-		app/command_type.hxx
-		app/parse_error.hxx
-		app/parsed_command.hxx
+		cli/app_state.cxx
+		cli/cli_app.cxx
+		cli/cli_renderer.cxx
+		cli/command_dispatcher.cxx
+		cli/command_parser.cxx
+
+		cli/include/space_fossils/cli/app_state.hxx
+		cli/include/space_fossils/cli/cli_app.hxx
+		cli/include/space_fossils/cli/cli_renderer.hxx
+		cli/include/space_fossils/cli/command.hxx
+		cli/include/space_fossils/cli/command_dispatcher.hxx
+		cli/include/space_fossils/cli/command_parser.hxx
+		cli/include/space_fossils/cli/command_result.hxx
+		cli/include/space_fossils/cli/command_spec.hxx
+		cli/include/space_fossils/cli/command_type.hxx
+		cli/include/space_fossils/cli/parse_error.hxx
+		cli/include/space_fossils/cli/parsed_command.hxx
+		cli/include/space_fossils/cli/scan_command_options.hxx
 )
 
 target_include_directories(space_fossils_cli
 	PUBLIC
-		app
+		cli/include
 )
 
 target_link_libraries(space_fossils_cli
