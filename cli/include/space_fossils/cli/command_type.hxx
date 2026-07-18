@@ -4,28 +4,26 @@ namespace space_fossils::cli {
 	enum class CommandType
 	{
 		Undefined = 0
+
 		, Help
 		, Quit
 
-		, SetToDecimalUnits
-		, SetToBinaryUnits
+		, SetUnits
 
 		, Scan
+		, Rescan
 
-		, Save
-		, Load
+		, SaveSnapshot
+		, LoadSnapshot
 
-		, Info
+		, ShowTree
+		, ListChildren
+		, ShowInfo
+		, ShowTop
 
 		, ChangeDirectory
-		, GoUp
-		, GoRoot
-		, EnterSubByIndex
-		, EnterSubByName
+		, PrintWorkingDirectory
 
-		, SelectSubByIndex
-		, SelectSubFirst
-		, SelectSubNext
-		, SelectSubPrevious
+		, Reset
 	};
 }

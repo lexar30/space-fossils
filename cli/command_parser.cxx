@@ -87,16 +87,12 @@ namespace space_fossils::cli {
 			return CommandType::Undefined;
 		}
 
-		const auto it = std::find_if(CommandSpecs.begin(), CommandSpecs.end(),
-			[&input](const auto& spec) {
-				return input == spec.name;
-			});
-
-		if (it == CommandSpecs.end()) {
+		const auto spec = TryFindCommandSpecByName(input);
+		if (spec == nullptr) {
 			return CommandType::Undefined;
 		}
 
-		return it->type;
+		return spec->type;
 	}
 
 	bool CommandParser::ValidateArgsCount(CommandType commandType, const TokenizedResult& tokenizedResult)
@@ -109,15 +105,11 @@ namespace space_fossils::cli {
 			return false;
 		}
 
-		const auto it = std::find_if(CommandSpecs.begin(), CommandSpecs.end(),
-			[&commandType](const auto& spec) {
-				return commandType == spec.type;
-			});
-
-		if (it == CommandSpecs.end()) {
+		const auto spec = TryFindCommandSpecByType(commandType);
+		if (spec == nullptr) {
 			return false;
 		}
 
-		return (tokenizedResult.tokens.size() - 1) == it->argsCount;
+		return (tokenizedResult.tokens.size() - 1) == spec->argsCount;
 	}
 }

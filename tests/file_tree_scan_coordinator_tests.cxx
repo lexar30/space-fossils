@@ -275,10 +275,12 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(replacementChange.target == oldRoot, true);
 		SF_ASSERT_EQ(replacementChange.addedRoot != nullptr, true);
 		SF_ASSERT_EQ(replacementChange.addedRoot == oldRoot, false);
-		SF_ASSERT_EQ(replacementChange.addedNodesCount, 4);
+		SF_ASSERT_EQ(replacementChange.addedNodesCount, 8);
 		SF_ASSERT_EQ(replacementChange.removedNodesCount, 1);
 		SF_ASSERT_EQ(storage.GetRoot() == replacementChange.addedRoot, true);
-		SF_ASSERT_EQ(storage.GetNodesCount(), 4);
+		SF_ASSERT_EQ(storage.GetNodesCount(), 8);
+		SF_ASSERT_EQ(CountPendingDirectories(storage.GetRoot()), 0);
+		SF_ASSERT_EQ(coordinator.HasScheduledJobs(), false);
 	}
 
 	SF_TEST(file_tree_scan_coordinator, RemoveJobDoesNotRunScannerOrScheduleFollowUpJobs)
@@ -392,7 +394,7 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(appliedChange.removedNodesCount, 1);
 		SF_ASSERT_EQ(FindChild(*storage.GetRoot(), "sub_directory_1") == nullptr, true);
 		SF_ASSERT_EQ(FindChild(*storage.GetRoot(), "sub_directory_2") != nullptr, true);
-		SF_ASSERT_EQ(storage.GetNodesCount(), 4);
+		SF_ASSERT_EQ(storage.GetNodesCount(), 5);
 
 		Summary summary = coordinator.GetSummary();
 		SF_ASSERT_EQ(summary.scanJobStatistics.appliedJobCount, 2);
@@ -413,7 +415,7 @@ namespace space_fossils::tests {
 			++processedFollowUpJobs;
 		}
 
-		SF_ASSERT_EQ(processedFollowUpJobs, 3);
+		SF_ASSERT_EQ(processedFollowUpJobs, 2);
 		SF_ASSERT_EQ(storage.GetNodesCount(), 8);
 		SF_ASSERT_EQ(CountPendingDirectories(storage.GetRoot()), 0);
 
@@ -435,7 +437,7 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(summary.totalScanElapsedTime.count() >= 0, true);
 		SF_ASSERT_EQ(summary.pendingJobsPeakCount, 2);
 		SF_ASSERT_EQ(summary.scanJobStatistics.emptyProcessCalls, 0);
-		SF_ASSERT_EQ(summary.scanJobStatistics.appliedJobCount, 4);
+		SF_ASSERT_EQ(summary.scanJobStatistics.appliedJobCount, 3);
 		SF_ASSERT_EQ(summary.scanJobStatistics.rejectedJobCount, 0);
 	}
 

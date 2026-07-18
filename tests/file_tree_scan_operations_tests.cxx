@@ -209,7 +209,7 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(coordinator.HasScheduledJobs(), false);
 		SF_ASSERT_EQ(storage.GetRoot() != nullptr, true);
 		SF_ASSERT_EQ(summary.storedNodesCount, 8);
-		SF_ASSERT_EQ(summary.scanJobStatistics.appliedJobCount, 4);
+		SF_ASSERT_EQ(summary.scanJobStatistics.appliedJobCount, 3);
 		SF_ASSERT_EQ(summary.scanJobStatistics.rejectedJobCount, 0);
 	}
 }

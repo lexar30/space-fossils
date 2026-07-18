@@ -9,7 +9,7 @@
 namespace space_fossils::cli {
 	void CliRenderer::RenderPrompt(std::ostream& output)
 	{
-		output << "sf> " << std::flush;
+		output << PromptMessage << std::flush;
 	}
 
 	void CliRenderer::RenderParseError(std::ostream& output, ParseStatus parseStatus)
@@ -23,20 +23,20 @@ namespace space_fossils::cli {
 		switch (parseStatus)
 		{
 		case ParseStatus::EmptyInput:
-			outputStr = "Empty input";
-			break;
+			output << ParseStatusEmptyInputMessage << '\n';
+			return;
 
 		case ParseStatus::InvalidCommand:
-			outputStr = "Invalid command";
-			break;
+			output << ParseStatusInvalidCommandMessage << '\n';
+			return;
 
 		case ParseStatus::InvalidArgs:
-			outputStr = "Invalid args";
-			break;
+			output << ParseStatusInvalidArgsMessage << '\n';
+			return;
 
 		case ParseStatus::InvalidQuotes:
-			outputStr = "Invalid quotes";
-			break;
+			output << ParseStatusInvalidQuotesMessage << '\n';
+			return;
 
 		case ParseStatus::Successful:
 			return;
@@ -44,30 +44,37 @@ namespace space_fossils::cli {
 		default:
 			return;
 		}
-
-		output << outputStr << '\n';
 	}
 
 	void CliRenderer::RenderCommandResult(std::ostream& output, const CommandResult& commandResult)
 	{
-		std::string outputStr;
-
 		switch (commandResult.status)
 		{
 		case CommandStatus::InvalidState:
-			outputStr += "Command failed by InvalidState: ";
-			break;
+			output << CommandStatusInvalidStateMessage << ' ' << commandResult.message << '\n';
+			return;
+
+		case CommandStatus::InvalidArgs:
+			output << CommandStatusInvalidArgsMessage << ' ' << commandResult.message << '\n';
+			return;
+
 		case CommandStatus::ExecutionFailed:
-			outputStr += "Command execution failed: ";
-			break;
+			output << CommandStatusExecutionFailedMessage << ' ' << commandResult.message << '\n';
+			return;
+
 		case CommandStatus::Successful:
-			break;
+			if (commandResult.message.empty()) {
+				return;
+			}
+
+			output << commandResult.message;
+			if (commandResult.message.back() != '\n') {
+				output << '\n';
+			}
+			return;
+
 		default:
 			return;
 		}
-
-		outputStr += commandResult.message;
-
-		output << outputStr << '\n';
 	}
 }

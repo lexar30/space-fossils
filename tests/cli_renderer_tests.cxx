@@ -57,7 +57,7 @@ namespace space_fossils::tests {
 
 		CliRenderer::RenderPrompt(output);
 
-		SF_ASSERT_EQ(buffer.str(), "sf> ");
+		SF_ASSERT_EQ(buffer.str(), CliRenderer::PromptMessage);
 		SF_ASSERT_EQ(buffer.syncCount, 1);
 	}
 

@@ -53,4 +53,40 @@ namespace space_fossils::core::file_tree {
 
 		return NativeStringView(ref.data, ref.length);
 	}
+
+	inline std::string_view ToString(EntryType value)
+	{
+		switch (value)
+		{
+		case EntryType::File: return "file";
+		case EntryType::Directory: return "directory";
+		case EntryType::Symlink: return "symlink";
+		case EntryType::Other: return "other";
+		default: return "unknown";
+		}
+	}
+
+	inline std::string_view ToString(EntryStatus value)
+	{
+		switch (value)
+		{
+		case EntryStatus::Accessible: return "accessible";
+		case EntryStatus::AccessDenied: return "access denied";
+		case EntryStatus::NotFound: return "not found";
+		case EntryStatus::Error: return "error";
+		default: return "unknown";
+		}
+	}
+
+	inline std::string_view ToString(EntryScanStatus value)
+	{
+		switch (value)
+		{
+		case EntryScanStatus::Pending: return "pending";
+		case EntryScanStatus::Complete: return "complete";
+		case EntryScanStatus::Partial: return "partial";
+		case EntryScanStatus::Error: return "error";
+		default: return "unknown";
+		}
+	}
 }

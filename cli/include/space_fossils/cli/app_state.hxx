@@ -4,6 +4,7 @@
 #include "space_fossils/core/file_tree/session/session.hxx"
 #include "space_fossils/core/size_formatter.hxx"
 
+#include <filesystem>
 #include <memory>
 
 namespace space_fossils::cli {
@@ -15,6 +16,7 @@ namespace space_fossils::cli {
 	{
 		Storage storage;
 		Session session{ storage };
+		std::filesystem::path scanRootPath;
 	};
 
 	struct AppState

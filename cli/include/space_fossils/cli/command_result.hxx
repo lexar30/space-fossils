@@ -7,6 +7,7 @@ namespace space_fossils::cli {
 	{
 		Undefined
 		, InvalidState
+		, InvalidArgs
 		, ExecutionFailed
 		, Successful
 	};

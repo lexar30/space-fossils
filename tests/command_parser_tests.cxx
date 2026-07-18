@@ -2,6 +2,8 @@
 
 #include "space_fossils_tests/micro_test_framework.hxx"
 
+#include <initializer_list>
+#include <string>
 #include <string_view>
 
 namespace space_fossils::tests {
@@ -16,14 +18,23 @@ namespace space_fossils::tests {
 			SF_ASSERT_EQ(result.parsedCommand.has_value(), false);
 		}
 
-		void AssertParsedCommand(std::string_view input, CommandType expectedType)
+		void AssertParsedCommand(
+			std::string_view input
+			, CommandType expectedType
+			, std::initializer_list<std::string_view> expectedArguments = {})
 		{
 			ParsedResult result = CommandParser::TryParse(input);
 
 			SF_ASSERT_EQ(result.status, ParseStatus::Successful);
 			SF_ASSERT_EQ(result.parsedCommand.has_value(), true);
 			SF_ASSERT_EQ(result.parsedCommand->type, expectedType);
-			SF_ASSERT_EQ(result.parsedCommand->arguments.empty(), true);
+			SF_ASSERT_EQ(result.parsedCommand->arguments.size(), expectedArguments.size());
+
+			std::size_t argumentIndex = 0;
+			for (std::string_view expectedArgument : expectedArguments) {
+				SF_ASSERT_EQ(result.parsedCommand->arguments[argumentIndex], expectedArgument);
+				++argumentIndex;
+			}
 		}
 	}
 
@@ -31,6 +42,26 @@ namespace space_fossils::tests {
 	{
 		AssertParsedCommand("help", CommandType::Help);
 		AssertParsedCommand("quit", CommandType::Quit);
+		AssertParsedCommand("units binary", CommandType::SetUnits, { "binary" });
+		AssertParsedCommand("scan \"C:\\Program Files\"", CommandType::Scan, { "C:\\Program Files" });
+		AssertParsedCommand("rescan", CommandType::Rescan);
+		AssertParsedCommand("save snapshot.bin", CommandType::SaveSnapshot, { "snapshot.bin" });
+		AssertParsedCommand("load snapshot.bin", CommandType::LoadSnapshot, { "snapshot.bin" });
+		AssertParsedCommand("tree", CommandType::ShowTree);
+		AssertParsedCommand("children", CommandType::ListChildren);
+		AssertParsedCommand("info", CommandType::ShowInfo);
+		AssertParsedCommand("top", CommandType::ShowTop);
+		AssertParsedCommand("cd src/core", CommandType::ChangeDirectory, { "src/core" });
+		AssertParsedCommand("pwd", CommandType::PrintWorkingDirectory);
+	}
+
+	SF_TEST(command_parser, ParsesShortCommandNames)
+	{
+		AssertParsedCommand("h", CommandType::Help);
+		AssertParsedCommand("q", CommandType::Quit);
+		AssertParsedCommand("t", CommandType::ShowTree);
+		AssertParsedCommand("ls", CommandType::ListChildren);
+		AssertParsedCommand("i", CommandType::ShowInfo);
 	}
 
 	SF_TEST(command_parser, IgnoresLeadingTrailingAndRepeatedWhitespace)
@@ -67,6 +98,13 @@ namespace space_fossils::tests {
 		AssertParseFailure("help extra", ParseStatus::InvalidArgs);
 		AssertParseFailure("quit now", ParseStatus::InvalidArgs);
 		AssertParseFailure("help first second", ParseStatus::InvalidArgs);
+		AssertParseFailure("units", ParseStatus::InvalidArgs);
+		AssertParseFailure("units binary extra", ParseStatus::InvalidArgs);
+		AssertParseFailure("scan", ParseStatus::InvalidArgs);
+		AssertParseFailure("rescan now", ParseStatus::InvalidArgs);
+		AssertParseFailure("save", ParseStatus::InvalidArgs);
+		AssertParseFailure("load", ParseStatus::InvalidArgs);
+		AssertParseFailure("cd", ParseStatus::InvalidArgs);
 	}
 
 	SF_TEST(command_parser, PreservesEmptyAndWhitespaceOnlyQuotedArguments)

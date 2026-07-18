@@ -7,6 +7,7 @@
 namespace space_fossils::core::file_tree::scan {
 	struct PlanningConfig
 	{
-		std::size_t jobDepth = DefaultScanDepth;
+		// TODO: temp, initial - DefaultScanDepth
+		std::size_t jobDepth = UnlimitedScanDepth;
 	};
 }
