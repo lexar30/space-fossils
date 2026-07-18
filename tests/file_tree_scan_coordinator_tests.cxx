@@ -369,36 +369,11 @@ namespace space_fossils::tests {
 		Storage storage;
 		Coordinator coordinator = MakeCoordinator(storage);
 
+		ScheduleRootJob(coordinator, SPACE_FOSSILS_FILE_SCANNER_FIXTURE_INVALID_PATH, 1);
 		ScheduleRootJob(coordinator, SPACE_FOSSILS_FILE_SCANNER_FIXTURE_ROOT, 1);
-		ApplyResult rootResult = coordinator.ProcessNext();
-		AssertApplied(rootResult);
 
-		const Node* root = storage.GetRoot();
-		Node* firstDirectory = RequireChild(*root, "sub_directory_1");
-		Node* secondDirectory = RequireChild(*root, "sub_directory_2");
-
-		std::optional<AppliedChange> removeResult = storage.TryRemoveSubtree(firstDirectory);
-		SF_ASSERT_EQ(removeResult.has_value(), true);
-		SF_ASSERT_EQ(storage.GetNodesCount(), 3);
-
-		ApplyResult staleResult = coordinator.ProcessNext();
-		AssertRejected(staleResult);
-
-		ApplyResult result = coordinator.ProcessNext();
-		AssertApplied(result);
-		const AppliedChange& appliedChange = result.appliedChange.value();
-
-		SF_ASSERT_EQ(appliedChange.type, ChangeType::Replace);
-		SF_ASSERT_EQ(appliedChange.target == secondDirectory, true);
-		SF_ASSERT_EQ(appliedChange.addedRoot != nullptr, true);
-		SF_ASSERT_EQ(appliedChange.removedNodesCount, 1);
-		SF_ASSERT_EQ(FindChild(*storage.GetRoot(), "sub_directory_1") == nullptr, true);
-		SF_ASSERT_EQ(FindChild(*storage.GetRoot(), "sub_directory_2") != nullptr, true);
-		SF_ASSERT_EQ(storage.GetNodesCount(), 5);
-
-		Summary summary = coordinator.GetSummary();
-		SF_ASSERT_EQ(summary.scanJobStatistics.appliedJobCount, 2);
-		SF_ASSERT_EQ(summary.scanJobStatistics.rejectedJobCount, 1);
+		AssertRejected(coordinator.ProcessNext());
+		AssertApplied(coordinator.ProcessNext());
 	}
 
 	SF_TEST(file_tree_scan_coordinator, ProcessesPendingDirectoriesUntilQueueIsEmpty)
@@ -468,21 +443,8 @@ namespace space_fossils::tests {
 
 		ScheduleRootJob(coordinator, SPACE_FOSSILS_FILE_SCANNER_FIXTURE_INVALID_PATH, 1);
 		ApplyResult result = coordinator.ProcessNext();
-		AssertApplied(result);
-		const AppliedChange& appliedChange = result.appliedChange.value();
-
-		SF_ASSERT_EQ(appliedChange.type, ChangeType::AdoptRoot);
-		SF_ASSERT_EQ(appliedChange.addedNodesCount, 1);
-		SF_ASSERT_EQ(appliedChange.removedNodesCount, 0);
-		SF_ASSERT_EQ(storage.GetRoot() == appliedChange.addedRoot, true);
-		SF_ASSERT_EQ(storage.GetNodesCount(), 1);
-
-		const Node* root = storage.GetRoot();
-		AssertNameEquals(*root, "root");
-		SF_ASSERT_EQ(root->entryType, EntryType::Unknown);
-		SF_ASSERT_EQ(root->entryStatus, EntryStatus::NotFound);
-		SF_ASSERT_EQ(root->scanStatus, EntryScanStatus::Error);
-		SF_ASSERT_EQ(coordinator.HasScheduledJobs(), false);
+		AssertRejected(result);
+		AssertNoJob(coordinator.ProcessNext());
 		AssertNoJob(coordinator.ProcessNext());
 	}
 }

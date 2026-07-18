@@ -26,7 +26,7 @@ namespace space_fossils::cli {
 
 		std::filesystem::path MakePath(std::string_view value)
 		{
-			return std::filesystem::u8path(value.begin(), value.end());
+			return std::filesystem::path(std::u8string(value.begin(), value.end()));
 		}
 
 		std::string ToUtf8(NativeStringView value)

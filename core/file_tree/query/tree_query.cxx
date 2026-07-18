@@ -3,7 +3,8 @@
 #include "space_fossils/core/file_tree/model/node.hxx"
 #include "space_fossils/core/file_tree/model/types.hxx"
 
-#include <ranges>
+#include <algorithm>
+#include <filesystem>
 
 namespace space_fossils::core::file_tree {
 	NativeString TreeQuery::BuildNativePath(const Node* const node)
@@ -20,7 +21,7 @@ namespace space_fossils::core::file_tree {
 		NativeString nativePath{};
 		for (std::size_t componentIndex = 0; componentIndex < pathComponents.size(); ++componentIndex) {
 			if (componentIndex != 0 && !EndsWithSeparator(nativePath)) {
-				nativePath.push_back(static_cast<NativeChar>('\\'));
+				nativePath.push_back(std::filesystem::path::preferred_separator);
 			}
 
 			nativePath.append(pathComponents[componentIndex]);

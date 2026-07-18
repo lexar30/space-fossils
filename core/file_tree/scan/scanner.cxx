@@ -22,17 +22,22 @@ namespace space_fossils::core::file_tree::scan {
 
 	TreePoolBundle Scanner::Scan(const ScanInput& input)
 	{
+		std::error_code rootEc;
+		std::filesystem::directory_entry rootEntry(input.path, rootEc);
+		if (rootEc) {
+			return {};
+		}
+
+		const std::filesystem::file_status rootStatus = rootEntry.symlink_status(rootEc);
+		if (rootEc || !std::filesystem::exists(rootStatus))	{
+			return {};
+		}
+
 		TreePoolBundle bundle = CreateBundle();
 
 		if (bundle.namePool->GetBlockSize() == 0
 			|| bundle.nodePool->GetBlockSize() == 0
 			) {
-			return bundle;
-		}
-
-		std::error_code rootEc;
-		std::filesystem::directory_entry rootEntry(input.path, rootEc);
-		if (rootEc) {
 			return bundle;
 		}
 

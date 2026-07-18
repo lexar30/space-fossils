@@ -140,12 +140,10 @@ namespace space_fossils::tests {
 	{
 		TreePoolBundle bundle = ScanPath(SPACE_FOSSILS_FILE_SCANNER_FIXTURE_INVALID_PATH, 1);
 
-		AssertSingleRootBundle(bundle);
-		AssertNameEquals(*bundle.root, "root");
-		SF_ASSERT_EQ(bundle.root->entryType, EntryType::Unknown);
-		SF_ASSERT_EQ(bundle.root->entryStatus, EntryStatus::NotFound);
-		SF_ASSERT_EQ(bundle.root->scanStatus, EntryScanStatus::Error);
-		SF_ASSERT_EQ(bundle.root->logicalSize, DefaultFileSize);
+		SF_ASSERT_EQ(bundle.root, nullptr);
+		SF_ASSERT_EQ(bundle.createdNodesCount, 0);
+		SF_ASSERT_EQ(bundle.namePool.get(), nullptr);
+		SF_ASSERT_EQ(bundle.nodePool.get(), nullptr);
 	}
 
 	SF_TEST(file_tree_scanner, ScanEmptyDirectoryCreatesCompleteDirectoryRoot)
