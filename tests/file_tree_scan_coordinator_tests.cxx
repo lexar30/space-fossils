@@ -364,7 +364,7 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(CountPendingDirectories(storage.GetRoot()) >= 1, true);
 	}
 
-	SF_TEST(file_tree_scan_coordinator, ProcessNextSkipsStaleRejectedJobAndContinues)
+	SF_TEST(file_tree_scan_coordinator, ProcessNextContinuesAfterRejectedScan)
 	{
 		Storage storage;
 		Coordinator coordinator = MakeCoordinator(storage);

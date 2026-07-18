@@ -136,7 +136,7 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(bundle.root->logicalSize, std::filesystem::file_size(SPACE_FOSSILS_FILE_SCANNER_FIXTURE_TEST_FILE));
 	}
 
-	SF_TEST(file_tree_scanner, ScanMissingPathCreatesNotFoundRoot)
+	SF_TEST(file_tree_scanner, ScanMissingPathReturnsEmptyBundle)
 	{
 		TreePoolBundle bundle = ScanPath(SPACE_FOSSILS_FILE_SCANNER_FIXTURE_INVALID_PATH, 1);
 
