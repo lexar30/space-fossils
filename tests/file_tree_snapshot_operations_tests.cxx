@@ -2,12 +2,14 @@
 
 #include "space_fossils/core/file_tree/model/tree_pool_bundle.hxx"
 #include "space_fossils/core/file_tree/storage/storage.hxx"
+#include "space_fossils/core/version.hxx"
 #include "space_fossils_tests/micro_test_framework.hxx"
 
 #include <filesystem>
 #include <fstream>
 #include <memory>
 #include <optional>
+#include <string>
 #include <system_error>
 #include <utility>
 
@@ -126,6 +128,14 @@ namespace space_fossils::tests {
 			std::filesystem::remove(path.parent_path(), ec);
 			SF_ASSERT_EQ(bool(ec), false);
 		}
+
+		void AssertDefaultMetadata(const TreeMetadata& metadata)
+		{
+			SF_ASSERT_EQ(metadata.scanSourcePath.empty(), true);
+			SF_ASSERT_EQ(metadata.treeSource, TreeSource::Unknown);
+			SF_ASSERT_EQ(metadata.applicationVersion.empty(), true);
+			SF_ASSERT_EQ(metadata.updatedAtUnixSeconds, 0);
+		}
 	}
 
 	SF_TEST(file_tree_snapshot_operations, SavesAndLoadsSnapshotRoundTrip)
@@ -133,9 +143,14 @@ namespace space_fossils::tests {
 		const std::filesystem::path snapshotPath = PrepareTestPath("round-trip.sfvb");
 		Storage source;
 		ApplyTestTree(source, "root", "file.txt", 42);
+		TreeMetadata metadata;
+		metadata.scanSourcePath = std::filesystem::path("source") / "root";
+		metadata.treeSource = TreeSource::Scan;
+		metadata.applicationVersion = "ignored-writer-version";
+		metadata.updatedAtUnixSeconds = 123456;
 		Operations operations;
 
-		SavedSnapshotSummary saved = operations.TrySaveSnapshot(snapshotPath, source);
+		SavedSnapshotSummary saved = operations.TrySaveSnapshot(snapshotPath, source, metadata);
 
 		SF_ASSERT_EQ(saved.isSuccessful, true);
 		SF_ASSERT_EQ(saved.saveDuration.count() >= 0, true);
@@ -146,6 +161,12 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(load.isSuccessful, true);
 		SF_ASSERT_EQ(load.loadDuration.count() >= 0, true);
 		SF_ASSERT_EQ(loaded.GetVersion(), 1);
+		SF_ASSERT_EQ(load.treeMetadata.scanSourcePath == metadata.scanSourcePath, true);
+		SF_ASSERT_EQ(load.treeMetadata.treeSource, TreeSource::Snapshot);
+		SF_ASSERT_EQ(
+			load.treeMetadata.applicationVersion,
+			std::string(space_fossils::core::version::ApplicationVersion));
+		SF_ASSERT_EQ(load.treeMetadata.updatedAtUnixSeconds, metadata.updatedAtUnixSeconds);
 		AssertTestTree(loaded, "root", "file.txt", 42);
 
 		RemoveTestPath(snapshotPath);
@@ -158,11 +179,11 @@ namespace space_fossils::tests {
 
 		Storage first;
 		ApplyTestTree(first, "first", "old.txt", 10);
-		SF_ASSERT_EQ(operations.TrySaveSnapshot(snapshotPath, first).isSuccessful, true);
+		SF_ASSERT_EQ(operations.TrySaveSnapshot(snapshotPath, first, {}).isSuccessful, true);
 
 		Storage second;
 		ApplyTestTree(second, "second", "new.txt", 20);
-		SF_ASSERT_EQ(operations.TrySaveSnapshot(snapshotPath, second).isSuccessful, true);
+		SF_ASSERT_EQ(operations.TrySaveSnapshot(snapshotPath, second, {}).isSuccessful, true);
 
 		Storage loaded;
 		SF_ASSERT_EQ(operations.TryLoadSnapshot(snapshotPath, loaded).isSuccessful, true);
@@ -177,7 +198,7 @@ namespace space_fossils::tests {
 		Storage storage;
 		Operations operations;
 
-		SavedSnapshotSummary saved = operations.TrySaveSnapshot(snapshotPath, storage);
+		SavedSnapshotSummary saved = operations.TrySaveSnapshot(snapshotPath, storage, {});
 
 		SF_ASSERT_EQ(saved.isSuccessful, false);
 		SF_ASSERT_EQ(saved.saveDuration.count() >= 0, true);
@@ -197,7 +218,7 @@ namespace space_fossils::tests {
 		ApplyTestTree(source, "root", "file.txt", 42);
 		Operations operations;
 
-		SavedSnapshotSummary saved = operations.TrySaveSnapshot(missingDirectory / "snapshot.sfvb", source);
+		SavedSnapshotSummary saved = operations.TrySaveSnapshot(missingDirectory / "snapshot.sfvb", source, {});
 
 		SF_ASSERT_EQ(saved.isSuccessful, false);
 		SF_ASSERT_EQ(saved.saveDuration.count() >= 0, true);
@@ -219,6 +240,7 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(storage.GetRoot() == nullptr, true);
 		SF_ASSERT_EQ(storage.GetNodesCount(), 0);
 		SF_ASSERT_EQ(storage.GetVersion(), 0);
+		AssertDefaultMetadata(missing.treeMetadata);
 
 		std::ofstream corruptedOut(corruptedPath, std::ios::binary);
 		corruptedOut.write("bad", 3);
@@ -232,6 +254,7 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(storage.GetRoot() == nullptr, true);
 		SF_ASSERT_EQ(storage.GetNodesCount(), 0);
 		SF_ASSERT_EQ(storage.GetVersion(), 0);
+		AssertDefaultMetadata(corrupted.treeMetadata);
 
 		RemoveTestPath(corruptedPath);
 	}
@@ -242,7 +265,7 @@ namespace space_fossils::tests {
 		Operations operations;
 		Storage source;
 		ApplyTestTree(source, "source", "source.txt", 10);
-		SF_ASSERT_EQ(operations.TrySaveSnapshot(snapshotPath, source).isSuccessful, true);
+		SF_ASSERT_EQ(operations.TrySaveSnapshot(snapshotPath, source, {}).isSuccessful, true);
 
 		Storage destination;
 		Node* originalRoot = ApplyTestTree(destination, "destination", "destination.txt", 20);
@@ -252,6 +275,7 @@ namespace space_fossils::tests {
 
 		SF_ASSERT_EQ(load.isSuccessful, false);
 		SF_ASSERT_EQ(load.loadDuration.count(), 0);
+		AssertDefaultMetadata(load.treeMetadata);
 		SF_ASSERT_EQ(destination.GetRoot() == originalRoot, true);
 		SF_ASSERT_EQ(destination.GetVersion(), originalVersion);
 		AssertTestTree(destination, "destination", "destination.txt", 20);
@@ -265,7 +289,7 @@ namespace space_fossils::tests {
 		Operations operations;
 		Storage source;
 		ApplyTestTree(source, "source", "source.txt", 10);
-		SF_ASSERT_EQ(operations.TrySaveSnapshot(snapshotPath, source).isSuccessful, true);
+		SF_ASSERT_EQ(operations.TrySaveSnapshot(snapshotPath, source, {}).isSuccessful, true);
 
 		Storage destination;
 		Node* oldRoot = ApplyTestTree(destination, "old", "old.txt", 20);
@@ -277,6 +301,7 @@ namespace space_fossils::tests {
 
 		SF_ASSERT_EQ(load.isSuccessful, false);
 		SF_ASSERT_EQ(load.loadDuration.count(), 0);
+		AssertDefaultMetadata(load.treeMetadata);
 		SF_ASSERT_EQ(destination.GetRoot() == nullptr, true);
 		SF_ASSERT_EQ(destination.GetNodesCount(), 0);
 		SF_ASSERT_EQ(destination.GetVersion(), originalVersion);

@@ -2,26 +2,23 @@
 
 #include "space_fossils/core/operation_timer.hxx"
 
-#include <array>
 #include <cstdint>
 #include <ostream>
 
 namespace space_fossils::core::file_tree {
 	struct Node;
+	struct TreeMetadata;
 }
 
 namespace space_fossils::core::file_tree::snapshot {
-	class Writer
+	class BinaryWriter
 	{
 	public:
-		static constexpr std::array<char, 4> MagicBytes{ 'S', 'F', 'V', 'B' };
-
-	public:
-		bool TryWriteSnapshot(std::ostream& out, const Node* root) const;
+		bool TryWriteSnapshot(std::ostream& out, const Node* root, const TreeMetadata& treeMetadata) const;
 		MetricsDuration GetWriteElapsedTime() const;
 
 	private:
-		bool TryWriteMetadata(std::ostream& out) const;
+		bool TryWriteMetadata(std::ostream& out, const TreeMetadata& treeMetadata) const;
 		bool TryWriteBody(std::ostream& out, const Node* root) const;
 		bool TryWriteNode(std::ostream& out, const Node* root) const;
 

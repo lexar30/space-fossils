@@ -1,22 +1,23 @@
 #pragma once
 
+#include "space_fossils/core/file_tree/model/tree_metadata.hxx"
 #include "space_fossils/core/file_tree/storage/storage.hxx"
 #include "space_fossils/core/file_tree/session/session.hxx"
 #include "space_fossils/core/size_formatter.hxx"
 
-#include <filesystem>
 #include <memory>
 
 namespace space_fossils::cli {
 	using space_fossils::core::file_tree::Storage;
 	using space_fossils::core::file_tree::Session;
+	using space_fossils::core::file_tree::TreeMetadata;
 	using space_fossils::core::FileSizeUnitSystem;
 
 	struct TreeContext
 	{
 		Storage storage;
 		Session session{ storage };
-		std::filesystem::path scanRootPath;
+		TreeMetadata treeMetadata = {};
 	};
 
 	struct AppState

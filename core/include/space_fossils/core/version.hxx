@@ -5,5 +5,6 @@
 namespace space_fossils::core::version {
 	inline constexpr const char* ApplicationName = "space-fossils";
 	inline constexpr const char* ApplicationVersion = "1.0.0-alpha";
-	inline constexpr std::uint32_t SnapshotFormatVersion = 1;
+
+	inline constexpr std::uint32_t BinarySnapshotFormatVersion = 2;
 }

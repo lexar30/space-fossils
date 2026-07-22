@@ -13,6 +13,7 @@ namespace space_fossils::cli {
 		while (!appState.isQuitRequested) {
 			CliRenderer::RenderPrompt(output);
 
+			// TODO: kinda dangerous, win input encoding is unknown
 			std::string line;
 			if (!std::getline(input, line)) {
 				break;

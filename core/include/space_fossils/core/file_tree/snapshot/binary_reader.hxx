@@ -2,6 +2,7 @@
 
 #include "space_fossils/core/operation_timer.hxx"
 #include "space_fossils/core/file_tree/model/tree_pool_bundle.hxx"
+#include "space_fossils/core/file_tree/model/tree_metadata.hxx"
 
 #include <cstdint>
 #include <istream>
@@ -12,14 +13,20 @@ namespace space_fossils::core::file_tree {
 }
 
 namespace space_fossils::core::file_tree::snapshot {
-	class Reader
+	struct LoadedSnapshot
+	{
+		TreePoolBundle poolBundle;
+		TreeMetadata treeMetadata;
+	};
+
+	class BinaryReader
 	{
 	public:
-		std::optional<TreePoolBundle> TryReadSnapshot(std::istream& in) const;
+		std::optional<LoadedSnapshot> TryReadSnapshot(std::istream& in) const;
 		MetricsDuration GetReadElapsedTime() const;
 
 	private:
-		bool TryReadAndCheckMetadata(std::istream& in) const;
+		bool TryReadAndCheckMetadata(std::istream& in, TreeMetadata& treeMetadata) const;
 		bool TryReadBody(std::istream& in, TreePoolBundle& bundle) const;
 		bool TryReadNodeRecord(std::istream& in, TreePoolBundle& bundle, Node*& node, std::uint64_t& childCount) const;
 

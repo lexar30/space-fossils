@@ -1,4 +1,4 @@
-#include "space_fossils/core/file_tree/snapshot/reader.hxx"
+#include "space_fossils/core/file_tree/snapshot/binary_reader.hxx"
 
 #include "space_fossils/core/file_tree/model/default_constants.hxx"
 #include "space_fossils/core/file_tree/memory/name_pool.hxx"
@@ -6,7 +6,7 @@
 #include "space_fossils/core/file_tree/memory/node_pool.hxx"
 #include "space_fossils/core/file_tree/model/types.hxx"
 #include "space_fossils/core/file_tree/model/tree_pool_bundle.hxx"
-#include "space_fossils/core/file_tree/snapshot/writer.hxx"
+#include "space_fossils/core/file_tree/snapshot/constants.hxx"
 #include "space_fossils/core/version.hxx"
 
 #include <array>
@@ -14,6 +14,7 @@
 #include <ios>
 #include <limits>
 #include <memory>
+#include <string>
 #include <vector>
 
 namespace space_fossils::core::file_tree::snapshot {
@@ -26,19 +27,20 @@ namespace space_fossils::core::file_tree::snapshot {
 		};
 	}
 
-	std::optional<TreePoolBundle> Reader::TryReadSnapshot(std::istream& in) const
+	std::optional<LoadedSnapshot> BinaryReader::TryReadSnapshot(std::istream& in) const
 	{
 		OperationTimer timer;
 
 		timer.Start();
 		TreePoolBundle bundle;
+		TreeMetadata treeMetadata;
 
 		bundle.root = nullptr;
 		bundle.createdNodesCount = 0;
 		bundle.namePool = std::make_unique<NamePool>(DefaultNameBlockSize);
 		bundle.nodePool = std::make_unique<NodePool>(DefaultNodeBlockSize);
 
-		if (!TryReadAndCheckMetadata(in)) {
+		if (!TryReadAndCheckMetadata(in, treeMetadata)) {
 			timer.Stop();
 			readElapsedTime = timer.Elapsed();
 			return std::nullopt;
@@ -58,30 +60,33 @@ namespace space_fossils::core::file_tree::snapshot {
 		timer.Stop();
 		readElapsedTime = timer.Elapsed();
 
-		return bundle;
+		LoadedSnapshot loadedSnapshot{ std::move(bundle), std::move(treeMetadata) };
+
+		return loadedSnapshot;
 	}
 
-	MetricsDuration Reader::GetReadElapsedTime() const
+	MetricsDuration BinaryReader::GetReadElapsedTime() const
 	{
 		return readElapsedTime;
 	}
 
-	bool Reader::TryReadAndCheckMetadata(std::istream& in) const
+	bool BinaryReader::TryReadAndCheckMetadata(std::istream& in, TreeMetadata& treeMetadata) const
 	{
-		// TODO: use metadata later & split read/check(?)
+		treeMetadata.treeSource = TreeSource::Snapshot;
+
 		std::array<char, 4> magicBytes{};
-		if (!TryReadBytes(in, magicBytes.data(), Writer::MagicBytes.size())) {
+		if (!TryReadBytes(in, magicBytes.data(), MagicBytes.size())) {
 			return false;
 		}
-		if (magicBytes != Writer::MagicBytes) {
+		if (magicBytes != MagicBytes) {
 			return false;
 		}
 
-		std::uint32_t snapshotFormatVersion = 0;
-		if (!TryReadValue(in, snapshotFormatVersion)) {
+		std::uint32_t binarySnapshotFormatVersion = 0;
+		if (!TryReadValue(in, binarySnapshotFormatVersion)) {
 			return false;
 		}
-		if (snapshotFormatVersion != version::SnapshotFormatVersion) {
+		if (binarySnapshotFormatVersion != version::BinarySnapshotFormatVersion) {
 			return false;
 		}
 
@@ -90,14 +95,14 @@ namespace space_fossils::core::file_tree::snapshot {
 			return false;
 		}
 
-		if (!TrySkipBytes(in, applicationVersionLength)) {
+		if (applicationVersionLength > ApplicationVersionLengthLimit) {
+			return false; // corrupted
+		}
+		std::string applicationVersionBytes(static_cast<std::size_t>(applicationVersionLength), '\0');
+		if (!TryReadBytes(in, applicationVersionBytes.data(), applicationVersionLength)) {
 			return false;
 		}
-
-		std::uint64_t secondsSinceEpoch = 0;
-		if (!TryReadValue(in, secondsSinceEpoch)) {
-			return false;
-		}
+		treeMetadata.applicationVersion = std::move(applicationVersionBytes);
 
 		std::uint8_t nativeCharSize = 0;
 		if (!TryReadValue(in, nativeCharSize)) {
@@ -107,10 +112,34 @@ namespace space_fossils::core::file_tree::snapshot {
 			return false;
 		}
 
+		std::uint64_t secondsSinceEpoch = 0;
+		if (!TryReadValue(in, secondsSinceEpoch)) {
+			return false;
+		}
+		treeMetadata.updatedAtUnixSeconds = secondsSinceEpoch;
+
+		std::uint64_t sourcePathBytesLength = 0;
+		if (!TryReadValue(in, sourcePathBytesLength)) {
+			return false;
+		}
+
+		if (sourcePathBytesLength > SourcePathBytesLengthLimit || sourcePathBytesLength % sizeof(NativeChar) != 0) {
+			return false; // corrupted
+		}
+
+		const std::size_t sourcePathCharsCount = static_cast<std::size_t>(sourcePathBytesLength) / sizeof(NativeChar);
+		if (sourcePathCharsCount > 0) {
+			NativeString sourcePathBytes(sourcePathCharsCount, NativeChar{});
+			if (!TryReadBytes(in, sourcePathBytes.data(), sourcePathBytesLength)) {
+				return false;
+			}
+			treeMetadata.scanSourcePath = std::filesystem::path(std::move(sourcePathBytes));
+		}
+
 		return in.good();
 	}
 
-	bool Reader::TryReadBody(std::istream& in, TreePoolBundle& bundle) const
+	bool BinaryReader::TryReadBody(std::istream& in, TreePoolBundle& bundle) const
 	{
 		Node* root = nullptr;
 		std::uint64_t rootChildCount = 0;
@@ -167,7 +196,7 @@ namespace space_fossils::core::file_tree::snapshot {
 		return in.good();
 	}
 
-	bool Reader::TryReadNodeRecord(std::istream& in, TreePoolBundle& bundle, Node*& node, std::uint64_t& childCount) const
+	bool BinaryReader::TryReadNodeRecord(std::istream& in, TreePoolBundle& bundle, Node*& node, std::uint64_t& childCount) const
 	{
 		node = bundle.nodePool->Create();
 		if (node == nullptr) {
@@ -249,7 +278,7 @@ namespace space_fossils::core::file_tree::snapshot {
 		return true;
 	}
 
-	bool Reader::TryReadBytes(std::istream& in, void* data, std::uint64_t size) const
+	bool BinaryReader::TryReadBytes(std::istream& in, void* data, std::uint64_t size) const
 	{
 		if (data == nullptr && size != 0) {
 			return false;
@@ -264,7 +293,7 @@ namespace space_fossils::core::file_tree::snapshot {
 		return in.good();
 	}
 
-	bool Reader::TrySkipBytes(std::istream& in, std::uint64_t size) const
+	bool BinaryReader::TrySkipBytes(std::istream& in, std::uint64_t size) const
 	{
 		std::array<char, 256> buffer{};
 		std::uint64_t remainingBytes = size;
@@ -285,7 +314,7 @@ namespace space_fossils::core::file_tree::snapshot {
 	}
 
 	template<typename T>
-	bool Reader::TryReadValue(std::istream& in, T& value) const
+	bool BinaryReader::TryReadValue(std::istream& in, T& value) const
 	{
 		return TryReadBytes(in, &value, sizeof(T));
 	}

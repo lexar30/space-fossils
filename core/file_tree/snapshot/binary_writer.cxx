@@ -1,19 +1,21 @@
-#include "space_fossils/core/file_tree/snapshot/writer.hxx"
+#include "space_fossils/core/file_tree/snapshot/binary_writer.hxx"
 
 #include "space_fossils/core/file_tree/model/node.hxx"
 #include "space_fossils/core/file_tree/model/types.hxx"
+#include "space_fossils/core/file_tree/model/tree_metadata.hxx"
+#include "space_fossils/core/file_tree/snapshot/constants.hxx"
 #include "space_fossils/core/version.hxx"
 
-#include <chrono>
 #include <cstdint>
 #include <cstring>
 #include <limits>
 #include <ranges>
 #include <stack>
+#include <string>
 #include <vector>
 
 namespace space_fossils::core::file_tree::snapshot {
-	bool Writer::TryWriteSnapshot(std::ostream& out, const Node* root) const
+	bool BinaryWriter::TryWriteSnapshot(std::ostream& out, const Node* root, const TreeMetadata& treeMetadata) const
 	{
 		OperationTimer timer;
 
@@ -24,41 +26,52 @@ namespace space_fossils::core::file_tree::snapshot {
 			return false;
 		}
 
-		const bool isSuccessful = TryWriteMetadata(out) && TryWriteBody(out, root);
+		const bool isSuccessful = TryWriteMetadata(out, treeMetadata) && TryWriteBody(out, root);
 		timer.Stop();
 		writeElapsedTime = timer.Elapsed();
 
 		return isSuccessful;
 	}
 
-	MetricsDuration Writer::GetWriteElapsedTime() const
+	MetricsDuration BinaryWriter::GetWriteElapsedTime() const
 	{
 		return writeElapsedTime;
 	}
 
-	bool Writer::TryWriteBody(std::ostream& out, const Node* root) const
+	bool BinaryWriter::TryWriteBody(std::ostream& out, const Node* root) const
 	{
 		return TryWriteNode(out, root);
 	}
 
-	bool Writer::TryWriteMetadata(std::ostream& out) const
+	bool BinaryWriter::TryWriteMetadata(std::ostream& out, const TreeMetadata& treeMetadata) const
 	{
-		const auto epochDuration = std::chrono::system_clock::now().time_since_epoch();
-		const std::uint64_t secondsSinceEpoch = std::chrono::duration_cast<std::chrono::seconds>(epochDuration).count();
-
 		const std::uint64_t applicationVersionLength = std::strlen(version::ApplicationVersion);
+
+		if (applicationVersionLength > ApplicationVersionLengthLimit) {
+			return false;
+		}
+
 		const std::uint8_t nativeCharSize = sizeof(NativeChar);
 
+		const NativeString sourcePathNative = treeMetadata.scanSourcePath.native();
+		const std::uint64_t sourcePathBytesLength = static_cast<std::uint64_t>(sourcePathNative.size()) * sizeof(NativeChar);
+
+		if (sourcePathBytesLength > SourcePathBytesLengthLimit || sourcePathBytesLength % sizeof(NativeChar) != 0) {
+			return false;
+		}
+
 		return TryWriteBytes(out, MagicBytes.data(), MagicBytes.size())
-			&& TryWriteValue(out, version::SnapshotFormatVersion)
+			&& TryWriteValue(out, version::BinarySnapshotFormatVersion)
 			&& TryWriteValue(out, applicationVersionLength)
 			&& TryWriteBytes(out, version::ApplicationVersion, applicationVersionLength)
-			&& TryWriteValue(out, secondsSinceEpoch)
 			&& TryWriteValue(out, nativeCharSize)
+			&& TryWriteValue(out, treeMetadata.updatedAtUnixSeconds)
+			&& TryWriteValue(out, sourcePathBytesLength)
+			&& TryWriteBytes(out, sourcePathNative.data(), sourcePathBytesLength)
 			;
 	}
 
-	bool Writer::TryWriteNode(std::ostream& out, const Node* root) const
+	bool BinaryWriter::TryWriteNode(std::ostream& out, const Node* root) const
 	{
 		std::stack<const Node*> nodes;
 		std::vector<const Node*> children;
@@ -122,7 +135,7 @@ namespace space_fossils::core::file_tree::snapshot {
 		return out.good();
 	}
 
-	bool Writer::TryWriteBytes(std::ostream& out, const void* data, std::uint64_t size) const
+	bool BinaryWriter::TryWriteBytes(std::ostream& out, const void* data, std::uint64_t size) const
 	{
 		if (data == nullptr && size != 0) {
 			return false;
@@ -138,7 +151,7 @@ namespace space_fossils::core::file_tree::snapshot {
 	}
 
 	template<typename T>
-	bool Writer::TryWriteValue(std::ostream& out, T value) const
+	bool BinaryWriter::TryWriteValue(std::ostream& out, T value) const
 	{
 		return TryWriteBytes(out, &value, static_cast<std::uint64_t>(sizeof(T)));
 	}

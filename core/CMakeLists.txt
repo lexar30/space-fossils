@@ -11,8 +11,8 @@ target_sources(space_fossils_core
 		file_tree/scan/coordinator.cxx
 		file_tree/scan/planner.cxx
 		file_tree/scan/operations.cxx
-		file_tree/snapshot/reader.cxx
-		file_tree/snapshot/writer.cxx
+		file_tree/snapshot/binary_reader.cxx
+		file_tree/snapshot/binary_writer.cxx
 		file_tree/snapshot/operations.cxx
 		file_tree/report/text_writer.cxx
 		file_tree/query/tree_query.cxx
@@ -40,8 +40,9 @@ target_sources(space_fossils_core
 		include/space_fossils/core/file_tree/scan/planner.hxx
 		include/space_fossils/core/file_tree/scan/operations.hxx
 		include/space_fossils/core/file_tree/report/text_writer.hxx
-		include/space_fossils/core/file_tree/snapshot/reader.hxx
-		include/space_fossils/core/file_tree/snapshot/writer.hxx
+		include/space_fossils/core/file_tree/snapshot/binary_reader.hxx
+		include/space_fossils/core/file_tree/snapshot/binary_writer.hxx
+		include/space_fossils/core/file_tree/snapshot/constants.hxx
 		include/space_fossils/core/file_tree/snapshot/operations.hxx
 		include/space_fossils/core/file_tree/query/tree_query.hxx
 		include/space_fossils/core/file_tree/session/session.hxx
@@ -50,6 +51,7 @@ target_sources(space_fossils_core
 		include/space_fossils/core/size_formatter.hxx
 		include/space_fossils/core/operation_timer.hxx
 		include/space_fossils/core/file_tree/scan/summary.hxx
+		include/space_fossils/core/file_tree/model/tree_metadata.hxx
 		include/space_fossils/core/file_tree/model/types.hxx
 		include/space_fossils/core/file_tree/model/node.hxx
 )

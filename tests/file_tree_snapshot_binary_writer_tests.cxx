@@ -1,12 +1,14 @@
-#include "space_fossils/core/file_tree/snapshot/writer.hxx"
+#include "space_fossils/core/file_tree/snapshot/binary_writer.hxx"
 
 #include "space_fossils/core/file_tree/model/node.hxx"
+#include "space_fossils/core/file_tree/model/tree_metadata.hxx"
+#include "space_fossils/core/file_tree/snapshot/constants.hxx"
 #include "space_fossils/core/version.hxx"
 #include "space_fossils_tests/micro_test_framework.hxx"
 
-#include <chrono>
 #include <cstdint>
 #include <cstring>
+#include <filesystem>
 #include <sstream>
 #include <streambuf>
 #include <string>
@@ -46,12 +48,6 @@ namespace space_fossils::tests {
 			}
 		}
 
-		std::uint64_t CurrentUnixSeconds()
-		{
-			const auto epochDuration = std::chrono::system_clock::now().time_since_epoch();
-			return std::chrono::duration_cast<std::chrono::seconds>(epochDuration).count();
-		}
-
 		template<typename T>
 		T ReadValue(const std::string& data, std::size_t& offset)
 		{
@@ -77,28 +73,43 @@ namespace space_fossils::tests {
 		void AssertSnapshotMetadata(
 			const std::string& bytes,
 			std::size_t& offset,
-			std::uint64_t timestampBefore,
-			std::uint64_t timestampAfter)
+			const TreeMetadata& expectedMetadata)
 		{
-			const std::string magic = ReadBytes(bytes, offset, Writer::MagicBytes.size());
-			SF_ASSERT_EQ(magic.size(), Writer::MagicBytes.size());
-			for (std::size_t index = 0; index < Writer::MagicBytes.size(); ++index) {
-				SF_ASSERT_EQ(magic[index], Writer::MagicBytes[index]);
+			const std::string magic = ReadBytes(bytes, offset, MagicBytes.size());
+			SF_ASSERT_EQ(magic.size(), MagicBytes.size());
+			for (std::size_t index = 0; index < MagicBytes.size(); ++index) {
+				SF_ASSERT_EQ(magic[index], MagicBytes[index]);
 			}
 
 			const std::uint32_t snapshotFormatVersion = ReadValue<std::uint32_t>(bytes, offset);
-			SF_ASSERT_EQ(snapshotFormatVersion, version::SnapshotFormatVersion);
+			SF_ASSERT_EQ(snapshotFormatVersion, version::BinarySnapshotFormatVersion);
 
 			const std::uint64_t applicationVersionLength = ReadValue<std::uint64_t>(bytes, offset);
 			const std::string applicationVersion = ReadBytes(bytes, offset, applicationVersionLength);
 			SF_ASSERT_EQ(applicationVersion, std::string(version::ApplicationVersion));
 
-			const std::uint64_t createdUnixSeconds = ReadValue<std::uint64_t>(bytes, offset);
-			SF_ASSERT_EQ(createdUnixSeconds >= timestampBefore, true);
-			SF_ASSERT_EQ(createdUnixSeconds <= timestampAfter, true);
-
 			const std::uint8_t nativeCharSize = ReadValue<std::uint8_t>(bytes, offset);
 			SF_ASSERT_EQ(nativeCharSize, static_cast<std::uint8_t>(sizeof(NativeChar)));
+
+			const std::uint64_t updatedAtUnixSeconds = ReadValue<std::uint64_t>(bytes, offset);
+			SF_ASSERT_EQ(updatedAtUnixSeconds, expectedMetadata.updatedAtUnixSeconds);
+
+			const std::uint64_t sourcePathBytesLength = ReadValue<std::uint64_t>(bytes, offset);
+			const NativeString expectedSourcePath = expectedMetadata.scanSourcePath.native();
+			SF_ASSERT_EQ(sourcePathBytesLength, expectedSourcePath.size() * sizeof(NativeChar));
+
+			NativeString sourcePath(static_cast<std::size_t>(sourcePathBytesLength / sizeof(NativeChar)), NativeChar{});
+			if (sourcePathBytesLength > 0) {
+				SF_ASSERT_EQ(offset + sourcePathBytesLength <= bytes.size(), true);
+				std::memcpy(sourcePath.data(), bytes.data() + offset, static_cast<std::size_t>(sourcePathBytesLength));
+			}
+			offset += static_cast<std::size_t>(sourcePathBytesLength);
+			SF_ASSERT_EQ(sourcePath == expectedSourcePath, true);
+		}
+
+		std::filesystem::path MakePathWithNativeCharacters(std::size_t characterCount)
+		{
+			return std::filesystem::path(NativeString(characterCount, static_cast<NativeChar>('a')));
 		}
 
 		NativeString ReadNativeName(const std::string& data, std::size_t& offset)
@@ -244,33 +255,36 @@ namespace space_fossils::tests {
 		};
 	}
 
-	SF_TEST(file_tree_snapshot_writer, RejectsNullRoot)
+	SF_TEST(file_tree_snapshot_binary_writer, RejectsNullRoot)
 	{
-		Writer writer;
+		BinaryWriter writer;
 		std::ostringstream out(std::ios::out | std::ios::binary);
 
-		const bool written = writer.TryWriteSnapshot(out, nullptr);
+		const bool written = writer.TryWriteSnapshot(out, nullptr, {});
 
 		SF_ASSERT_EQ(written, false);
 		SF_ASSERT_EQ(out.str().empty(), true);
 	}
 
-	SF_TEST(file_tree_snapshot_writer, WritesSnapshotHeaderAndNodesInDfsPreorder)
+	SF_TEST(file_tree_snapshot_binary_writer, WritesSnapshotHeaderAndNodesInDfsPreorder)
 	{
 		TestTree tree;
-		Writer writer;
+		TreeMetadata treeMetadata;
+		treeMetadata.scanSourcePath = std::filesystem::path("source") / "root";
+		treeMetadata.treeSource = TreeSource::Scan;
+		treeMetadata.applicationVersion = "ignored-writer-version";
+		treeMetadata.updatedAtUnixSeconds = 123456;
+		BinaryWriter writer;
 		std::ostringstream out(std::ios::out | std::ios::binary);
 
-		const std::uint64_t timestampBefore = CurrentUnixSeconds();
-		const bool written = writer.TryWriteSnapshot(out, &tree.root);
-		const std::uint64_t timestampAfter = CurrentUnixSeconds();
+		const bool written = writer.TryWriteSnapshot(out, &tree.root, treeMetadata);
 
 		SF_ASSERT_EQ(written, true);
 
 		const std::string bytes = out.str();
 		std::size_t offset = 0;
 
-		AssertSnapshotMetadata(bytes, offset, timestampBefore, timestampAfter);
+		AssertSnapshotMetadata(bytes, offset, treeMetadata);
 
 		const SnapshotNodeRecord rootRecord = ReadNodeRecord(bytes, offset);
 		AssertNodeRecord(rootRecord, "root", 60, EntryType::Directory, EntryStatus::Accessible, EntryScanStatus::Complete, 2);
@@ -287,7 +301,7 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(offset, bytes.size());
 	}
 
-	SF_TEST(file_tree_snapshot_writer, WritesEmptyNameAsZeroLengthName)
+	SF_TEST(file_tree_snapshot_binary_writer, WritesEmptyNameAsZeroLengthName)
 	{
 		Node root;
 		root.logicalSize = 42;
@@ -295,19 +309,17 @@ namespace space_fossils::tests {
 		root.entryStatus = EntryStatus::Unknown;
 		root.scanStatus = EntryScanStatus::Unknown;
 
-		Writer writer;
+		BinaryWriter writer;
 		std::ostringstream out(std::ios::out | std::ios::binary);
 
-		const std::uint64_t timestampBefore = CurrentUnixSeconds();
-		const bool written = writer.TryWriteSnapshot(out, &root);
-		const std::uint64_t timestampAfter = CurrentUnixSeconds();
+		const bool written = writer.TryWriteSnapshot(out, &root, {});
 
 		SF_ASSERT_EQ(written, true);
 
 		const std::string bytes = out.str();
 		std::size_t offset = 0;
 
-		AssertSnapshotMetadata(bytes, offset, timestampBefore, timestampAfter);
+		AssertSnapshotMetadata(bytes, offset, {});
 
 		const SnapshotNodeRecord rootRecord = ReadNodeRecord(bytes, offset);
 		AssertNodeRecord(rootRecord, "", 42, EntryType::Unknown, EntryStatus::Unknown, EntryScanStatus::Unknown, 0);
@@ -315,7 +327,7 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(offset, bytes.size());
 	}
 
-	SF_TEST(file_tree_snapshot_writer, RejectsNameWithLengthButNoData)
+	SF_TEST(file_tree_snapshot_binary_writer, RejectsNameWithLengthButNoData)
 	{
 		Node root;
 		root.name = NameRef{
@@ -323,35 +335,78 @@ namespace space_fossils::tests {
 			1
 		};
 
-		Writer writer;
+		BinaryWriter writer;
 		std::ostringstream out(std::ios::out | std::ios::binary);
 
-		const bool written = writer.TryWriteSnapshot(out, &root);
+		const bool written = writer.TryWriteSnapshot(out, &root, {});
 
 		SF_ASSERT_EQ(written, false);
 	}
 
-	SF_TEST(file_tree_snapshot_writer, ReturnsFalseWhenStreamFailsDuringWrite)
+	SF_TEST(file_tree_snapshot_binary_writer, AcceptsSourcePathAtByteLengthLimit)
 	{
-		TestTree tree;
-		Writer writer;
-		FailingAfterBytesBuffer buffer(1);
-		std::ostream out(&buffer);
+		Node root;
+		TreeMetadata treeMetadata;
+		treeMetadata.scanSourcePath = MakePathWithNativeCharacters(
+			static_cast<std::size_t>(SourcePathBytesLengthLimit / sizeof(NativeChar)));
+		BinaryWriter writer;
+		std::ostringstream out(std::ios::out | std::ios::binary);
 
-		const bool written = writer.TryWriteSnapshot(out, &tree.root);
+		const bool written = writer.TryWriteSnapshot(out, &root, treeMetadata);
 
-		SF_ASSERT_EQ(written, false);
-		SF_ASSERT_EQ(out.good(), false);
+		SF_ASSERT_EQ(written, true);
+		const std::string bytes = out.str();
+		std::size_t offset = 0;
+		AssertSnapshotMetadata(bytes, offset, treeMetadata);
+		SF_ASSERT_EQ(offset < bytes.size(), true);
 	}
 
-	SF_TEST(file_tree_snapshot_writer, ReturnsFalseWhenStreamAlreadyFailed)
+	SF_TEST(file_tree_snapshot_binary_writer, RejectsSourcePathAboveByteLengthLimitBeforeWriting)
+	{
+		Node root;
+		TreeMetadata treeMetadata;
+		treeMetadata.scanSourcePath = MakePathWithNativeCharacters(
+			static_cast<std::size_t>(SourcePathBytesLengthLimit / sizeof(NativeChar)) + 1);
+		BinaryWriter writer;
+		std::ostringstream out(std::ios::out | std::ios::binary);
+
+		const bool written = writer.TryWriteSnapshot(out, &root, treeMetadata);
+
+		SF_ASSERT_EQ(written, false);
+		SF_ASSERT_EQ(out.str().empty(), true);
+	}
+
+	SF_TEST(file_tree_snapshot_binary_writer, ReturnsFalseForEveryPartialWriteBoundary)
 	{
 		TestTree tree;
-		Writer writer;
+		TreeMetadata treeMetadata;
+		treeMetadata.scanSourcePath = std::filesystem::path("source") / "root";
+		std::ostringstream completeOut(std::ios::out | std::ios::binary);
+		BinaryWriter completeWriter;
+		SF_ASSERT_EQ(completeWriter.TryWriteSnapshot(completeOut, &tree.root, treeMetadata), true);
+		const std::size_t completeSize = completeOut.str().size();
+		SF_ASSERT_EQ(completeSize > 0, true);
+
+		for (std::size_t bytesBeforeFailure = 0; bytesBeforeFailure < completeSize; ++bytesBeforeFailure) {
+			BinaryWriter writer;
+			FailingAfterBytesBuffer buffer(bytesBeforeFailure);
+			std::ostream out(&buffer);
+
+			const bool written = writer.TryWriteSnapshot(out, &tree.root, treeMetadata);
+
+			SF_ASSERT_EQ(written, false);
+			SF_ASSERT_EQ(out.good(), false);
+		}
+	}
+
+	SF_TEST(file_tree_snapshot_binary_writer, ReturnsFalseWhenStreamAlreadyFailed)
+	{
+		TestTree tree;
+		BinaryWriter writer;
 		std::ostringstream out(std::ios::out | std::ios::binary);
 		out.setstate(std::ios::badbit);
 
-		const bool written = writer.TryWriteSnapshot(out, &tree.root);
+		const bool written = writer.TryWriteSnapshot(out, &tree.root, {});
 
 		SF_ASSERT_EQ(written, false);
 	}

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "space_fossils/core/operation_timer.hxx"
+#include "space_fossils/core/file_tree/model/tree_metadata.hxx"
 
 #include <filesystem>
 
@@ -13,6 +14,7 @@ namespace space_fossils::core::file_tree::snapshot {
 	{
 		MetricsDuration loadDuration = {};
 		bool isSuccessful = false;
+		TreeMetadata treeMetadata = {};
 	};
 
 	struct SavedSnapshotSummary
@@ -24,7 +26,7 @@ namespace space_fossils::core::file_tree::snapshot {
 	class Operations
 	{
 	public:
-		SavedSnapshotSummary TrySaveSnapshot(const std::filesystem::path& outPath, const Storage& storage);
+		SavedSnapshotSummary TrySaveSnapshot(const std::filesystem::path& outPath, const Storage& storage, const TreeMetadata& treeMetadata);
 		LoadedSnapshotSummary TryLoadSnapshot(const std::filesystem::path& inPath, Storage& storage);
 	};
 }

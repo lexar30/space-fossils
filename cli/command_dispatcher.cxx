@@ -332,7 +332,11 @@ namespace space_fossils::cli {
 		if (!appState.HasActiveTree() || summary.scanJobStatistics.appliedJobCount == 0) {
 			return { CommandStatus::ExecutionFailed, "Scan failed" };
 		}
-		appState.context->scanRootPath = std::move(scanRootPath);
+		appState.context->treeMetadata.scanSourcePath = std::move(scanRootPath);
+		appState.context->treeMetadata.treeSource = TreeSource::Scan;
+
+		const auto epochDuration = std::chrono::system_clock::now().time_since_epoch();
+		appState.context->treeMetadata.updatedAtUnixSeconds = std::chrono::duration_cast<std::chrono::seconds>(epochDuration).count();
 
 		std::ostringstream message;
 		message << "Scan completed: " << summary.storedNodesCount << " nodes, "
@@ -352,11 +356,11 @@ namespace space_fossils::cli {
 			return { CommandStatus::ExecutionFailed, "Current directory is unavailable" };
 		}
 
-		if (appState.context->scanRootPath.empty()) {
+		if (appState.context->treeMetadata.scanSourcePath.empty()) {
 			return { CommandStatus::ExecutionFailed, "Scan source path is unavailable" };
 		}
 
-		std::filesystem::path scanPath = appState.context->scanRootPath;
+		std::filesystem::path scanPath = appState.context->treeMetadata.scanSourcePath;
 		const std::vector<NativeStringView> components = TreeQuery::CollectPathComponents(currentNode);
 		for (std::size_t index = 1; index < components.size(); ++index) {
 			scanPath /= components[index];
@@ -380,6 +384,9 @@ namespace space_fossils::cli {
 			return { CommandStatus::ExecutionFailed, "Rescan failed" };
 		}
 
+		const auto epochDuration = std::chrono::system_clock::now().time_since_epoch();
+		appState.context->treeMetadata.updatedAtUnixSeconds = std::chrono::duration_cast<std::chrono::seconds>(epochDuration).count();
+
 		return { CommandStatus::Successful, "Rescan completed" };
 	}
 
@@ -392,7 +399,7 @@ namespace space_fossils::cli {
 
 		snapshot::Operations operations;
 		const snapshot::SavedSnapshotSummary summary =
-			operations.TrySaveSnapshot(path, appState.context->storage);
+			operations.TrySaveSnapshot(path, appState.context->storage, appState.context->treeMetadata);
 		if (!summary.isSuccessful) {
 			return { CommandStatus::ExecutionFailed, "Failed to save snapshot" };
 		}
@@ -412,13 +419,14 @@ namespace space_fossils::cli {
 
 		auto candidate = std::make_unique<TreeContext>();
 		snapshot::Operations operations;
-		const snapshot::LoadedSnapshotSummary summary =
-			operations.TryLoadSnapshot(path, candidate->storage);
+		snapshot::LoadedSnapshotSummary summary = operations.TryLoadSnapshot(path, candidate->storage);
 		if (!summary.isSuccessful) {
 			return { CommandStatus::ExecutionFailed, "Failed to load snapshot" };
 		}
 
 		appState.context = std::move(candidate);
+		appState.context->treeMetadata = std::move(summary.treeMetadata);
+
 		return {
 			CommandStatus::Successful,
 			"Snapshot loaded in " + std::to_string(ToMilliseconds(summary.loadDuration)) + " ms"

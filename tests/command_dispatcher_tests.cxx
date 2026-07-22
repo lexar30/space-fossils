@@ -3,6 +3,7 @@
 #include "space_fossils/cli/command_spec.hxx"
 #include "space_fossils/cli/command_type.hxx"
 #include "space_fossils/core/file_tree/model/tree_pool_bundle.hxx"
+#include "space_fossils/core/version.hxx"
 #include "space_fossils_tests/micro_test_framework.hxx"
 
 #include <algorithm>
@@ -139,6 +140,19 @@ namespace space_fossils::tests {
 			SF_ASSERT_EQ(bool(error), false);
 			std::filesystem::remove(path.parent_path(), error);
 			SF_ASSERT_EQ(bool(error), false);
+		}
+
+		void AssertMetadataEquals(const TreeMetadata& actual, const TreeMetadata& expected)
+		{
+			SF_ASSERT_EQ(actual.scanSourcePath == expected.scanSourcePath, true);
+			SF_ASSERT_EQ(actual.treeSource, expected.treeSource);
+			SF_ASSERT_EQ(actual.applicationVersion, expected.applicationVersion);
+			SF_ASSERT_EQ(actual.updatedAtUnixSeconds, expected.updatedAtUnixSeconds);
+		}
+
+		void AssertDefaultMetadata(const TreeMetadata& metadata)
+		{
+			AssertMetadataEquals(metadata, {});
 		}
 	}
 
@@ -308,15 +322,49 @@ namespace space_fossils::tests {
 			MakeCommand(CommandType::Scan, { SPACE_FOSSILS_FILE_SCANNER_FIXTURE_ROOT }), state);
 		SF_ASSERT_EQ(scan.status, CommandStatus::Successful);
 		SF_ASSERT_EQ(state.HasActiveTree(), true);
-		SF_ASSERT_EQ(state.context->scanRootPath.empty(), false);
+
+		std::error_code pathError;
+		const std::filesystem::path expectedSourcePath = std::filesystem::absolute(
+			SPACE_FOSSILS_FILE_SCANNER_FIXTURE_ROOT,
+			pathError).lexically_normal();
+		SF_ASSERT_EQ(bool(pathError), false);
+		SF_ASSERT_EQ(state.context->treeMetadata.scanSourcePath == expectedSourcePath, true);
+		SF_ASSERT_EQ(state.context->treeMetadata.treeSource, TreeSource::Scan);
+		SF_ASSERT_EQ(state.context->treeMetadata.applicationVersion.empty(), true);
+		SF_ASSERT_EQ(state.context->treeMetadata.updatedAtUnixSeconds > 0, true);
 
 		CommandResult repeatedScan = CommandDispatcher::Dispatch(
 			MakeCommand(CommandType::Scan, { SPACE_FOSSILS_FILE_SCANNER_FIXTURE_ROOT }), state);
 		SF_ASSERT_EQ(repeatedScan.status, CommandStatus::InvalidState);
 
+		state.context->treeMetadata.updatedAtUnixSeconds = 0;
 		CommandResult rescan = CommandDispatcher::Dispatch(MakeCommand(CommandType::Rescan), state);
 		SF_ASSERT_EQ(rescan.status, CommandStatus::Successful);
 		SF_ASSERT_EQ(state.HasActiveTree(), true);
+		SF_ASSERT_EQ(state.context->treeMetadata.scanSourcePath == expectedSourcePath, true);
+		SF_ASSERT_EQ(state.context->treeMetadata.treeSource, TreeSource::Scan);
+		SF_ASSERT_EQ(state.context->treeMetadata.updatedAtUnixSeconds > 0, true);
+	}
+
+	SF_TEST(command_dispatcher, RescanWithoutSourcePathLeavesTreeAndMetadataUnchanged)
+	{
+		AppState state;
+		PopulateTree(state);
+		TreeMetadata expectedMetadata;
+		expectedMetadata.treeSource = TreeSource::Snapshot;
+		expectedMetadata.applicationVersion = "snapshot-version";
+		expectedMetadata.updatedAtUnixSeconds = 123456;
+		state.context->treeMetadata = expectedMetadata;
+		const Node* originalRoot = state.context->storage.GetRoot();
+		const StorageVersion originalVersion = state.context->storage.GetVersion();
+
+		CommandResult rescan = CommandDispatcher::Dispatch(MakeCommand(CommandType::Rescan), state);
+
+		SF_ASSERT_EQ(rescan.status, CommandStatus::ExecutionFailed);
+		SF_ASSERT_EQ(rescan.message, "Scan source path is unavailable");
+		SF_ASSERT_EQ(state.context->storage.GetRoot() == originalRoot, true);
+		SF_ASSERT_EQ(state.context->storage.GetVersion(), originalVersion);
+		AssertMetadataEquals(state.context->treeMetadata, expectedMetadata);
 	}
 
 	SF_TEST(command_dispatcher, InvalidScanPathLeavesStorageFresh)
@@ -329,7 +377,7 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(result.status, CommandStatus::ExecutionFailed);
 		SF_ASSERT_EQ(state.HasActiveTree(), false);
 		SF_ASSERT_EQ(state.IsFreshStorage(), true);
-		SF_ASSERT_EQ(state.context->scanRootPath.empty(), true);
+		AssertDefaultMetadata(state.context->treeMetadata);
 	}
 
 	SF_TEST(command_dispatcher, SnapshotRoundTripReplacesContextOnlyAfterSuccessfulLoad)
@@ -338,6 +386,12 @@ namespace space_fossils::tests {
 		const std::string pathArgument = PathToUtf8(snapshotPath);
 		AppState source;
 		PopulateTree(source);
+		TreeMetadata sourceMetadata;
+		sourceMetadata.scanSourcePath = std::filesystem::path("source") / "root";
+		sourceMetadata.treeSource = TreeSource::Scan;
+		sourceMetadata.applicationVersion = "ignored-writer-version";
+		sourceMetadata.updatedAtUnixSeconds = 123456;
+		source.context->treeMetadata = sourceMetadata;
 
 		CommandResult save = CommandDispatcher::Dispatch(
 			MakeCommand(CommandType::SaveSnapshot, { pathArgument }), source);
@@ -350,19 +404,62 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(load.status, CommandStatus::Successful);
 		SF_ASSERT_EQ(destination.context.get() == freshContext, false);
 		SF_ASSERT_EQ(destination.context->storage.GetNodesCount(), 5);
-		SF_ASSERT_EQ(destination.context->scanRootPath.empty(), true);
+		SF_ASSERT_EQ(destination.context->treeMetadata.scanSourcePath == sourceMetadata.scanSourcePath, true);
+		SF_ASSERT_EQ(destination.context->treeMetadata.treeSource, TreeSource::Snapshot);
+		SF_ASSERT_EQ(destination.context->treeMetadata.applicationVersion, std::string(version::ApplicationVersion));
+		SF_ASSERT_EQ(destination.context->treeMetadata.updatedAtUnixSeconds, sourceMetadata.updatedAtUnixSeconds);
+		SF_ASSERT_EQ(
+			&destination.context->session.GetStorage() == &destination.context->storage,
+			true);
 
 		TreeContext* loadedContext = destination.context.get();
 		const StorageVersion loadedVersion = destination.context->storage.GetVersion();
+		TreeMetadata preservedMetadata;
+		preservedMetadata.scanSourcePath = std::filesystem::path("preserved") / "source";
+		preservedMetadata.treeSource = TreeSource::Scan;
+		preservedMetadata.applicationVersion = "preserved-version";
+		preservedMetadata.updatedAtUnixSeconds = 987654;
+		destination.context->treeMetadata = preservedMetadata;
 		CommandResult failedLoad = CommandDispatcher::Dispatch(
 			MakeCommand(CommandType::LoadSnapshot, { "missing.sfvb" }), destination);
 		SF_ASSERT_EQ(failedLoad.status, CommandStatus::ExecutionFailed);
 		SF_ASSERT_EQ(destination.context.get() == loadedContext, true);
 		SF_ASSERT_EQ(destination.context->storage.GetVersion(), loadedVersion);
+		AssertMetadataEquals(destination.context->treeMetadata, preservedMetadata);
 
-		CommandResult rescan = CommandDispatcher::Dispatch(MakeCommand(CommandType::Rescan), destination);
-		SF_ASSERT_EQ(rescan.status, CommandStatus::ExecutionFailed);
-		SF_ASSERT_EQ(rescan.message, "Scan source path is unavailable");
+		RemoveSnapshotPath(snapshotPath);
+	}
+
+	SF_TEST(command_dispatcher, LoadedScannedSnapshotRetainsSourcePathForRescan)
+	{
+		const std::filesystem::path snapshotPath = PrepareSnapshotPath("loaded-rescan.sfvb");
+		const std::string snapshotPathArgument = PathToUtf8(snapshotPath);
+		AppState source;
+
+		CommandResult scan = CommandDispatcher::Dispatch(
+			MakeCommand(CommandType::Scan, { SPACE_FOSSILS_FILE_SCANNER_FIXTURE_ROOT }), source);
+		SF_ASSERT_EQ(scan.status, CommandStatus::Successful);
+		CommandResult save = CommandDispatcher::Dispatch(
+			MakeCommand(CommandType::SaveSnapshot, { snapshotPathArgument }), source);
+		SF_ASSERT_EQ(save.status, CommandStatus::Successful);
+
+		AppState loaded;
+		CommandResult load = CommandDispatcher::Dispatch(
+			MakeCommand(CommandType::LoadSnapshot, { snapshotPathArgument }), loaded);
+		SF_ASSERT_EQ(load.status, CommandStatus::Successful);
+		SF_ASSERT_EQ(loaded.context->treeMetadata.treeSource, TreeSource::Snapshot);
+		SF_ASSERT_EQ(loaded.context->treeMetadata.scanSourcePath, source.context->treeMetadata.scanSourcePath);
+
+		CommandResult changeDirectory = CommandDispatcher::Dispatch(
+			MakeCommand(CommandType::ChangeDirectory, { "sub_directory_1" }), loaded);
+		SF_ASSERT_EQ(changeDirectory.status, CommandStatus::Successful);
+		loaded.context->treeMetadata.updatedAtUnixSeconds = 0;
+		CommandResult rescan = CommandDispatcher::Dispatch(MakeCommand(CommandType::Rescan), loaded);
+
+		SF_ASSERT_EQ(rescan.status, CommandStatus::Successful);
+		SF_ASSERT_EQ(loaded.context->treeMetadata.treeSource, TreeSource::Snapshot);
+		SF_ASSERT_EQ(loaded.context->treeMetadata.scanSourcePath, source.context->treeMetadata.scanSourcePath);
+		SF_ASSERT_EQ(loaded.context->treeMetadata.updatedAtUnixSeconds > 0, true);
 
 		RemoveSnapshotPath(snapshotPath);
 	}

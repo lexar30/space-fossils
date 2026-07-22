@@ -3,6 +3,7 @@
 #include "space_fossils/core/file_tree/model/tree_pool_bundle.hxx"
 #include "space_fossils_tests/micro_test_framework.hxx"
 
+#include <filesystem>
 #include <memory>
 #include <optional>
 #include <utility>
@@ -40,6 +41,29 @@ namespace space_fossils::tests {
 		{
 			SF_ASSERT_EQ(&state.context->session.GetStorage() == &state.context->storage, true);
 		}
+
+		TreeMetadata MakeTestMetadata()
+		{
+			TreeMetadata metadata;
+			metadata.scanSourcePath = std::filesystem::path("source") / "root";
+			metadata.treeSource = TreeSource::Snapshot;
+			metadata.applicationVersion = "test-version";
+			metadata.updatedAtUnixSeconds = 123456;
+			return metadata;
+		}
+
+		void AssertMetadataEquals(const TreeMetadata& actual, const TreeMetadata& expected)
+		{
+			SF_ASSERT_EQ(actual.scanSourcePath == expected.scanSourcePath, true);
+			SF_ASSERT_EQ(actual.treeSource, expected.treeSource);
+			SF_ASSERT_EQ(actual.applicationVersion, expected.applicationVersion);
+			SF_ASSERT_EQ(actual.updatedAtUnixSeconds, expected.updatedAtUnixSeconds);
+		}
+
+		void AssertDefaultMetadata(const TreeMetadata& metadata)
+		{
+			AssertMetadataEquals(metadata, {});
+		}
 	}
 
 	SF_TEST(app_state, DefaultStateHasFreshEmptyTreeContext)
@@ -51,6 +75,7 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(state.HasActiveTree(), false);
 		SF_ASSERT_EQ(state.IsFreshStorage(), true);
 		SF_ASSERT_EQ(state.context->session.HasTree(), false);
+		AssertDefaultMetadata(state.context->treeMetadata);
 		AssertSessionUsesContextStorage(state);
 	}
 
@@ -85,6 +110,7 @@ namespace space_fossils::tests {
 	{
 		AppState state;
 		PopulateTree(state);
+		state.context->treeMetadata = MakeTestMetadata();
 		state.isQuitRequested = true;
 
 		state.ResetTreeContext();
@@ -93,8 +119,23 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(state.HasActiveTree(), false);
 		SF_ASSERT_EQ(state.IsFreshStorage(), true);
 		SF_ASSERT_EQ(state.context->session.HasTree(), false);
+		AssertDefaultMetadata(state.context->treeMetadata);
 		SF_ASSERT_EQ(state.isQuitRequested, true);
 		AssertSessionUsesContextStorage(state);
+	}
+
+	SF_TEST(app_state, TreeMetadataRemainsIndependentFromStorageChanges)
+	{
+		AppState state;
+		const TreeMetadata expectedMetadata = MakeTestMetadata();
+		state.context->treeMetadata = expectedMetadata;
+
+		Node* root = PopulateTree(state);
+		SF_ASSERT_EQ(state.context->storage.TryRemoveSubtree(root).has_value(), true);
+
+		AssertMetadataEquals(state.context->treeMetadata, expectedMetadata);
+		SF_ASSERT_EQ(state.HasActiveTree(), false);
+		SF_ASSERT_EQ(state.IsFreshStorage(), false);
 	}
 
 	SF_TEST(app_state, FailedStorageChangeKeepsContextFresh)
@@ -130,6 +171,8 @@ namespace space_fossils::tests {
 	{
 		AppState source;
 		Node* root = PopulateTree(source);
+		const TreeMetadata expectedMetadata = MakeTestMetadata();
+		source.context->treeMetadata = expectedMetadata;
 		source.isQuitRequested = true;
 		TreeContext* originalContext = source.context.get();
 
@@ -141,6 +184,7 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(destination.HasActiveTree(), true);
 		SF_ASSERT_EQ(destination.IsFreshStorage(), false);
 		SF_ASSERT_EQ(destination.context->session.GetRoot() == root, true);
+		AssertMetadataEquals(destination.context->treeMetadata, expectedMetadata);
 		AssertSessionUsesContextStorage(destination);
 	}
 }
