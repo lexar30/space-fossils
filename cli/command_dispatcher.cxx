@@ -12,9 +12,11 @@
 #include "space_fossils/core/file_tree/snapshot/operations.hxx"
 
 #include <algorithm>
+#include <charconv>
 #include <chrono>
 #include <filesystem>
 #include <memory>
+#include <ranges>
 #include <sstream>
 #include <string_view>
 
@@ -92,16 +94,19 @@ namespace space_fossils::cli {
 			std::string_view type;
 		};
 
-		std::string MakeNodeTable(
-			const std::vector<const Node*>& nodes,
-			FileSizeUnitSystem unitsType)
+		std::string MakeNodeTable(const std::vector<const Node*>& nodes, std::size_t nodesCountToShow, FileSizeUnitSystem unitsType)
 		{
+			if (nodesCountToShow > nodes.size()) {
+				nodesCountToShow = nodes.size();
+			}
+
 			std::vector<NodeLine> lines;
-			lines.reserve(nodes.size());
+			lines.reserve(nodesCountToShow);
 			std::size_t nameWidth = 0;
 			std::size_t sizeWidth = 0;
 
-			for (const Node* node : nodes) {
+			for (std::size_t nodeIndex = 0; nodeIndex < nodesCountToShow; ++nodeIndex) {
+				const Node* node = nodes[nodeIndex];
 				NodeLine line{
 					ToUtf8(node->name),
 					FormatFileSize(node->logicalSize, unitsType),
@@ -113,12 +118,15 @@ namespace space_fossils::cli {
 			}
 
 			std::ostringstream output;
-			for (const NodeLine& line : lines) {
+			for (std::size_t nodeIndex = 0; nodeIndex < nodesCountToShow; ++nodeIndex) {
+				const NodeLine& line = lines[nodeIndex];
+
 				WritePaddedRight(output, line.name, nameWidth);
 				output << "  ";
 				WritePaddedLeft(output, line.size, sizeWidth);
 				output << "  " << line.type << '\n';
 			}
+
 			return output.str();
 		}
 
@@ -141,7 +149,7 @@ namespace space_fossils::cli {
 			return ExecuteUndefined();
 		}
 
-		if (parsedCommand.arguments.size() != spec->argsCount) {
+		if (parsedCommand.arguments.size() < spec->argsCountMin || parsedCommand.arguments.size() > spec->argsCountMax) {
 			return {
 				CommandStatus::InvalidArgs,
 				"Unexpected arguments count"
@@ -212,7 +220,7 @@ namespace space_fossils::cli {
 			return ExecuteShowInfo(appState);
 
 		case CommandType::ShowTop:
-			return ExecuteShowTop(appState);
+			return ExecuteShowTop(parsedCommand.arguments, appState);
 
 		case CommandType::ChangeDirectory:
 			return ExecuteChangeDirectory(parsedCommand.arguments, appState);
@@ -456,7 +464,7 @@ namespace space_fossils::cli {
 			return { CommandStatus::Successful, "No children" };
 		}
 
-		return { CommandStatus::Successful, MakeNodeTable(children, appState.unitsType) };
+		return { CommandStatus::Successful, MakeNodeTable(children, children.size(), appState.unitsType) };
 	}
 
 	CommandResult CommandDispatcher::ExecuteShowInfo(AppState& appState)
@@ -477,8 +485,20 @@ namespace space_fossils::cli {
 		return { CommandStatus::Successful, output.str() };
 	}
 
-	CommandResult CommandDispatcher::ExecuteShowTop(AppState& appState)
+	CommandResult CommandDispatcher::ExecuteShowTop(const std::vector<std::string>& arguments, AppState& appState)
 	{
+		std::size_t nodesCountToShow = 0;
+		if (!arguments.empty()) {
+			const char* begin = arguments.front().data();
+			const char* end = begin + arguments.front().size();
+
+			auto [parsedEnd, error] = std::from_chars(begin, end, nodesCountToShow);
+
+			if (error != std::errc{} || parsedEnd != end || nodesCountToShow == 0) {
+				return { CommandStatus::InvalidArgs, "Invalid number" };
+			}
+		}
+
 		std::vector<const Node*> children = appState.context->session.GetAvailableChildren();
 		if (children.empty()) {
 			return { CommandStatus::Successful, "No children" };
@@ -488,7 +508,11 @@ namespace space_fossils::cli {
 			return left->logicalSize > right->logicalSize;
 			});
 
-		return { CommandStatus::Successful, MakeNodeTable(children, appState.unitsType) };
+		if (arguments.empty()) {
+			nodesCountToShow = children.size();
+		}
+
+		return { CommandStatus::Successful, MakeNodeTable(children, nodesCountToShow, appState.unitsType) };
 	}
 
 	CommandResult CommandDispatcher::ExecuteChangeDirectory(const std::vector<std::string>& arguments, AppState& appState)

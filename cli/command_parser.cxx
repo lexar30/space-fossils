@@ -110,6 +110,8 @@ namespace space_fossils::cli {
 			return false;
 		}
 
-		return (tokenizedResult.tokens.size() - 1) == spec->argsCount;
+		const std::size_t argsCount = tokenizedResult.tokens.size() - 1;
+
+		return argsCount >= spec->argsCountMin && argsCount <= spec->argsCountMax;
 	}
 }

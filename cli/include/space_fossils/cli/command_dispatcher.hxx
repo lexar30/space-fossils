@@ -29,7 +29,7 @@ namespace space_fossils::cli {
 		static CommandResult ExecuteShowTree(AppState& appState);
 		static CommandResult ExecuteListChildren(AppState& appState);
 		static CommandResult ExecuteShowInfo(AppState& appState);
-		static CommandResult ExecuteShowTop(AppState& appState);
+		static CommandResult ExecuteShowTop(const std::vector<std::string>& arguments, AppState& appState);
 		static CommandResult ExecuteChangeDirectory(const std::vector<std::string>& arguments, AppState& appState);
 		static CommandResult ExecutePrintWorkingDirectory(AppState& appState);
 		static CommandResult ExecuteReset(AppState& appState);

@@ -14,7 +14,8 @@ namespace space_fossils::cli {
 		std::string_view shortName;
 		std::string_view usage;
 		std::string_view description;
-		std::size_t argsCount;
+		std::size_t argsCountMin;
+		std::size_t argsCountMax;
 	};
 
 	inline constexpr std::array CommandSpecs{
@@ -25,6 +26,7 @@ namespace space_fossils::cli {
 			, "help"
 			, "Shows available commands"
 			, 0
+			, 0
 		}
 		, CommandSpec{
 			CommandType::Quit
@@ -32,6 +34,7 @@ namespace space_fossils::cli {
 			, "q"
 			, "quit"
 			, "Quits app"
+			, 0
 			, 0
 		}
 
@@ -42,6 +45,7 @@ namespace space_fossils::cli {
 			, "units <binary|decimal>"
 			, "Sets file size units"
 			, 1
+			, 1
 		}
 
 		, CommandSpec{
@@ -51,6 +55,7 @@ namespace space_fossils::cli {
 			, "scan <path>"
 			, "Scans a directory"
 			, 1
+			, 1
 		}
 		, CommandSpec{
 			CommandType::Rescan
@@ -58,6 +63,7 @@ namespace space_fossils::cli {
 			, ""
 			, "rescan"
 			, "Rescans current directory"
+			, 0
 			, 0
 		}
 
@@ -68,6 +74,7 @@ namespace space_fossils::cli {
 			, "save <path>"
 			, "Saves snapshot to a file"
 			, 1
+			, 1
 		}
 		, CommandSpec{
 			CommandType::LoadSnapshot
@@ -75,6 +82,7 @@ namespace space_fossils::cli {
 			, ""
 			, "load <path>"
 			, "Loads snapshot from a file"
+			, 1
 			, 1
 		}
 
@@ -85,6 +93,7 @@ namespace space_fossils::cli {
 			, "tree"
 			, "Shows current subtree"
 			, 0
+			, 0
 		}
 		, CommandSpec{
 			CommandType::ListChildren
@@ -92,6 +101,7 @@ namespace space_fossils::cli {
 			, "ls"
 			, "children"
 			, "Lists current directory children"
+			, 0
 			, 0
 		}
 		, CommandSpec{
@@ -101,14 +111,16 @@ namespace space_fossils::cli {
 			, "info"
 			, "Shows current entry information"
 			, 0
+			, 0
 		}
 		, CommandSpec{
 			CommandType::ShowTop
 			, "top"
 			, ""
-			, "top"
-			, "Shows largest entries"
+			, "top [count]"
+			, "Shows the largest entries in the current directory"
 			, 0
+			, 1
 		}
 
 		, CommandSpec{
@@ -118,6 +130,7 @@ namespace space_fossils::cli {
 			, "cd <path>"
 			, "Changes current directory"
 			, 1
+			, 1
 		}
 		, CommandSpec{
 			CommandType::PrintWorkingDirectory
@@ -125,6 +138,7 @@ namespace space_fossils::cli {
 			, ""
 			, "pwd"
 			, "Shows current directory path"
+			, 0
 			, 0
 		}
 
@@ -134,6 +148,7 @@ namespace space_fossils::cli {
 			, "rst"
 			, "reset"
 			, "Resets current file tree"
+			, 0
 			, 0
 		}
 	};

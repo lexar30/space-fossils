@@ -95,6 +95,17 @@ namespace space_fossils::tests {
 			SF_ASSERT_EQ(change.has_value(), true);
 		}
 
+		void PopulateRootOnlyTree(AppState& state)
+		{
+			TreePoolBundle bundle;
+			bundle.namePool = std::make_unique<NamePool>(DefaultNameBlockSize);
+			bundle.nodePool = std::make_unique<NodePool>(DefaultNodeBlockSize);
+			bundle.root = CreateNode(bundle, "root", EntryType::Directory, 0);
+
+			std::optional<AppliedChange> change = state.context->storage.TryAdoptRoot(std::move(bundle));
+			SF_ASSERT_EQ(change.has_value(), true);
+		}
+
 		std::string MakeExpectedHelpMessage()
 		{
 			std::size_t labelWidth = 0;
@@ -206,9 +217,12 @@ namespace space_fossils::tests {
 		CommandResult missing = CommandDispatcher::Dispatch(MakeCommand(CommandType::Scan), state);
 		CommandResult extra = CommandDispatcher::Dispatch(
 			MakeCommand(CommandType::Help, { "extra" }), state);
+		CommandResult topExtra = CommandDispatcher::Dispatch(
+			MakeCommand(CommandType::ShowTop, { "1", "extra" }), state);
 
 		SF_ASSERT_EQ(missing.status, CommandStatus::InvalidArgs);
 		SF_ASSERT_EQ(extra.status, CommandStatus::InvalidArgs);
+		SF_ASSERT_EQ(topExtra.status, CommandStatus::InvalidArgs);
 	}
 
 	SF_TEST(command_dispatcher, SetUnitsAcceptsKnownValuesAndRejectsUnknownValue)
@@ -312,6 +326,87 @@ namespace space_fossils::tests {
 			MakeCommand(CommandType::ChangeDirectory, { "/" }), state);
 		SF_ASSERT_EQ(rootCd.status, CommandStatus::Successful);
 		SF_ASSERT_EQ(rootCd.message, "root");
+	}
+
+	SF_TEST(command_dispatcher, ShowTopSupportsDefaultAndExplicitResultLimits)
+	{
+		AppState state;
+		PopulateTree(state);
+
+		const CommandResult all = CommandDispatcher::Dispatch(
+			MakeCommand(CommandType::ShowTop), state);
+		const CommandResult one = CommandDispatcher::Dispatch(
+			MakeCommand(CommandType::ShowTop, { "1" }), state);
+		const CommandResult two = CommandDispatcher::Dispatch(
+			MakeCommand(CommandType::ShowTop, { "2" }), state);
+		const CommandResult oversized = CommandDispatcher::Dispatch(
+			MakeCommand(CommandType::ShowTop, { "100" }), state);
+
+		const std::string expectedAll =
+			"folder     0.3 KB  directory\n"
+			"large.txt  0.2 KB  file\n"
+			"small.txt  0.1 KB  file\n";
+
+		SF_ASSERT_EQ(all.status, CommandStatus::Successful);
+		SF_ASSERT_EQ(all.message, expectedAll);
+		SF_ASSERT_EQ(one.status, CommandStatus::Successful);
+		SF_ASSERT_EQ(one.message, "folder  0.3 KB  directory\n");
+		SF_ASSERT_EQ(two.status, CommandStatus::Successful);
+		SF_ASSERT_EQ(
+			two.message,
+			"folder     0.3 KB  directory\n"
+			"large.txt  0.2 KB  file\n");
+		SF_ASSERT_EQ(oversized.status, CommandStatus::Successful);
+		SF_ASSERT_EQ(oversized.message, expectedAll);
+	}
+
+	SF_TEST(command_dispatcher, ShowTopRejectsInvalidAndOutOfRangeCountsWithoutChangingState)
+	{
+		AppState state;
+		PopulateTree(state);
+		const Node* expectedRoot = state.context->storage.GetRoot();
+		const Node* expectedCurrentNode = state.context->session.GetCurrentNode();
+		const StorageVersion expectedVersion = state.context->storage.GetVersion();
+
+		for (std::string_view argument : {
+			"",
+				"0",
+				"invalid",
+				"10abc",
+				"abc10",
+				"-1",
+				"+1",
+				"99999999999999999999999999999999999999999999999999"
+		}) {
+			const CommandResult result = CommandDispatcher::Dispatch(
+				MakeCommand(CommandType::ShowTop, { argument }), state);
+
+			SF_ASSERT_EQ(result.status, CommandStatus::InvalidArgs);
+			SF_ASSERT_EQ(result.message, "Invalid number");
+			SF_ASSERT_EQ(state.context->storage.GetRoot() == expectedRoot, true);
+			SF_ASSERT_EQ(state.context->session.GetCurrentNode() == expectedCurrentNode, true);
+			SF_ASSERT_EQ(state.context->storage.GetVersion(), expectedVersion);
+		}
+	}
+
+	SF_TEST(command_dispatcher, ShowTopValidatesCountBeforeReportingEmptyDirectory)
+	{
+		AppState state;
+		PopulateRootOnlyTree(state);
+
+		const CommandResult all = CommandDispatcher::Dispatch(
+			MakeCommand(CommandType::ShowTop), state);
+		const CommandResult limited = CommandDispatcher::Dispatch(
+			MakeCommand(CommandType::ShowTop, { "5" }), state);
+		const CommandResult invalid = CommandDispatcher::Dispatch(
+			MakeCommand(CommandType::ShowTop, { "invalid" }), state);
+
+		SF_ASSERT_EQ(all.status, CommandStatus::Successful);
+		SF_ASSERT_EQ(all.message, "No children");
+		SF_ASSERT_EQ(limited.status, CommandStatus::Successful);
+		SF_ASSERT_EQ(limited.message, "No children");
+		SF_ASSERT_EQ(invalid.status, CommandStatus::InvalidArgs);
+		SF_ASSERT_EQ(invalid.message, "Invalid number");
 	}
 
 	SF_TEST(command_dispatcher, ScanAndRescanUseOriginalSourcePath)

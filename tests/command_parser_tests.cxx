@@ -1,4 +1,5 @@
 #include "space_fossils/cli/command_parser.hxx"
+#include "space_fossils/cli/command_spec.hxx"
 
 #include "space_fossils_tests/micro_test_framework.hxx"
 
@@ -51,6 +52,7 @@ namespace space_fossils::tests {
 		AssertParsedCommand("children", CommandType::ListChildren);
 		AssertParsedCommand("info", CommandType::ShowInfo);
 		AssertParsedCommand("top", CommandType::ShowTop);
+		AssertParsedCommand("top 10", CommandType::ShowTop, { "10" });
 		AssertParsedCommand("cd src/core", CommandType::ChangeDirectory, { "src/core" });
 		AssertParsedCommand("pwd", CommandType::PrintWorkingDirectory);
 	}
@@ -104,7 +106,29 @@ namespace space_fossils::tests {
 		AssertParseFailure("rescan now", ParseStatus::InvalidArgs);
 		AssertParseFailure("save", ParseStatus::InvalidArgs);
 		AssertParseFailure("load", ParseStatus::InvalidArgs);
+		AssertParseFailure("top 1 extra", ParseStatus::InvalidArgs);
 		AssertParseFailure("cd", ParseStatus::InvalidArgs);
+	}
+
+	SF_TEST(command_parser, TopAcceptsZeroOrOneArgumentWithoutValidatingItsValue)
+	{
+		AssertParsedCommand("top", CommandType::ShowTop);
+		AssertParsedCommand("top 0", CommandType::ShowTop, { "0" });
+		AssertParsedCommand("top invalid", CommandType::ShowTop, { "invalid" });
+		AssertParsedCommand("top \"\"", CommandType::ShowTop, { "" });
+	}
+
+	SF_TEST(command_parser, CommandSpecsContainValidInclusiveArgumentRanges)
+	{
+		for (const CommandSpec& spec : CommandSpecs) {
+			SF_ASSERT_EQ(spec.argsCountMin <= spec.argsCountMax, true);
+		}
+
+		const CommandSpec* topSpec = TryFindCommandSpecByType(CommandType::ShowTop);
+		SF_ASSERT_EQ(topSpec != nullptr, true);
+		SF_ASSERT_EQ(topSpec->argsCountMin, 0);
+		SF_ASSERT_EQ(topSpec->argsCountMax, 1);
+		SF_ASSERT_EQ(topSpec->usage, "top [count]");
 	}
 
 	SF_TEST(command_parser, PreservesEmptyAndWhitespaceOnlyQuotedArguments)
