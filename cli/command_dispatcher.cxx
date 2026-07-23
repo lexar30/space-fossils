@@ -87,12 +87,47 @@ namespace space_fossils::cli {
 			return label;
 		}
 
+		constexpr std::size_t SizeBarSegmentsTotal = 10;
+
 		struct NodeLine
 		{
 			std::string name;
 			std::string size;
 			std::string_view type;
+			std::size_t sizeBarFilledSegments;
 		};
+
+		void WriteSizeBar(std::ostream& output, std::size_t filledSegments)
+		{
+			output << '[';
+
+			for (std::size_t segmentIndex = 0; segmentIndex < SizeBarSegmentsTotal; ++segmentIndex) {
+				output << (segmentIndex < filledSegments ? '#' : '-');
+			}
+
+			output << ']';
+		}
+
+		std::size_t CalculateSizeBarSegments(FileSize size, long double totalSize)
+		{
+			if (size == 0 || totalSize <= 0.0L) {
+				return 0;
+			}
+
+			const long double ratio = std::min(
+				1.0L,
+				static_cast<long double>(size) / totalSize
+			);
+
+			std::size_t filledSegments = static_cast<std::size_t>(
+				ratio * SizeBarSegmentsTotal);
+
+			if (filledSegments == 0) {
+				filledSegments = 1;
+			}
+
+			return filledSegments;
+		}
 
 		std::string MakeNodeTable(const std::vector<const Node*>& nodes, std::size_t nodesCountToShow, FileSizeUnitSystem unitsType)
 		{
@@ -105,12 +140,19 @@ namespace space_fossils::cli {
 			std::size_t nameWidth = 0;
 			std::size_t sizeWidth = 0;
 
+			long double totalEntriesSize = 0.0L;
+
+			for (const Node* node : nodes) {
+				totalEntriesSize += static_cast<long double>(node->logicalSize);
+			}
+
 			for (std::size_t nodeIndex = 0; nodeIndex < nodesCountToShow; ++nodeIndex) {
 				const Node* node = nodes[nodeIndex];
 				NodeLine line{
 					ToUtf8(node->name),
 					FormatFileSize(node->logicalSize, unitsType),
-					ToString(node->entryType)
+					ToString(node->entryType),
+					CalculateSizeBarSegments(node->logicalSize, totalEntriesSize)
 				};
 				nameWidth = std::max(nameWidth, GetTextWidth(line.name));
 				sizeWidth = std::max(sizeWidth, GetTextWidth(line.size));
@@ -123,8 +165,11 @@ namespace space_fossils::cli {
 
 				WritePaddedRight(output, line.name, nameWidth);
 				output << "  ";
+				WriteSizeBar(output, line.sizeBarFilledSegments);
+				output << "  ";
 				WritePaddedLeft(output, line.size, sizeWidth);
-				output << "  " << line.type << '\n';
+				output << "  " << line.type;
+				output << '\n';
 			}
 
 			return output.str();

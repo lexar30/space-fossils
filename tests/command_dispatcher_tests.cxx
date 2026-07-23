@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <filesystem>
 #include <initializer_list>
+#include <limits>
 #include <memory>
 #include <optional>
 #include <sstream>
@@ -101,6 +102,33 @@ namespace space_fossils::tests {
 			bundle.namePool = std::make_unique<NamePool>(DefaultNameBlockSize);
 			bundle.nodePool = std::make_unique<NodePool>(DefaultNodeBlockSize);
 			bundle.root = CreateNode(bundle, "root", EntryType::Directory, 0);
+
+			std::optional<AppliedChange> change = state.context->storage.TryAdoptRoot(std::move(bundle));
+			SF_ASSERT_EQ(change.has_value(), true);
+		}
+
+		void PopulateSizeBarTree(
+			AppState& state,
+			FileSize firstSize,
+			FileSize secondSize,
+			FileSize thirdSize)
+		{
+			TreePoolBundle bundle;
+			bundle.namePool = std::make_unique<NamePool>(DefaultNameBlockSize);
+			bundle.nodePool = std::make_unique<NodePool>(DefaultNodeBlockSize);
+
+			Node* root = CreateNode(bundle, "root", EntryType::Directory, 0);
+			Node* first = CreateNode(bundle, "first", EntryType::File, firstSize);
+			Node* second = CreateNode(bundle, "second", EntryType::File, secondSize);
+			Node* third = CreateNode(bundle, "third", EntryType::File, thirdSize);
+
+			root->firstChild = first;
+			first->parent = root;
+			first->nextSibling = second;
+			second->parent = root;
+			second->nextSibling = third;
+			third->parent = root;
+			bundle.root = root;
 
 			std::optional<AppliedChange> change = state.context->storage.TryAdoptRoot(std::move(bundle));
 			SF_ASSERT_EQ(change.has_value(), true);
@@ -300,9 +328,9 @@ namespace space_fossils::tests {
 		SF_ASSERT_EQ(tree.message.find("nested.txt") != std::string::npos, true);
 		SF_ASSERT_EQ(
 			children.message,
-			"folder     0.3 KB  directory\n"
-			"small.txt  0.1 KB  file\n"
-			"large.txt  0.2 KB  file\n");
+			"folder     [#####-----]  0.3 KB  directory\n"
+			"small.txt  [#---------]  0.1 KB  file\n"
+			"large.txt  [###-------]  0.2 KB  file\n");
 		const std::size_t folderPosition = top.message.find("folder");
 		const std::size_t largePosition = top.message.find("large.txt");
 		const std::size_t smallPosition = top.message.find("small.txt");
@@ -343,21 +371,68 @@ namespace space_fossils::tests {
 			MakeCommand(CommandType::ShowTop, { "100" }), state);
 
 		const std::string expectedAll =
-			"folder     0.3 KB  directory\n"
-			"large.txt  0.2 KB  file\n"
-			"small.txt  0.1 KB  file\n";
+			"folder     [#####-----]  0.3 KB  directory\n"
+			"large.txt  [###-------]  0.2 KB  file\n"
+			"small.txt  [#---------]  0.1 KB  file\n";
 
 		SF_ASSERT_EQ(all.status, CommandStatus::Successful);
 		SF_ASSERT_EQ(all.message, expectedAll);
 		SF_ASSERT_EQ(one.status, CommandStatus::Successful);
-		SF_ASSERT_EQ(one.message, "folder  0.3 KB  directory\n");
+		SF_ASSERT_EQ(one.message, "folder  [#####-----]  0.3 KB  directory\n");
 		SF_ASSERT_EQ(two.status, CommandStatus::Successful);
 		SF_ASSERT_EQ(
 			two.message,
-			"folder     0.3 KB  directory\n"
-			"large.txt  0.2 KB  file\n");
+			"folder     [#####-----]  0.3 KB  directory\n"
+			"large.txt  [###-------]  0.2 KB  file\n");
 		SF_ASSERT_EQ(oversized.status, CommandStatus::Successful);
 		SF_ASSERT_EQ(oversized.message, expectedAll);
+	}
+
+	SF_TEST(command_dispatcher, SizeBarsDistinguishZeroTinyAndLargeEntries)
+	{
+		AppState state;
+		PopulateSizeBarTree(state, 0, 1, 99);
+
+		const CommandResult result = CommandDispatcher::Dispatch(
+			MakeCommand(CommandType::ListChildren), state);
+
+		SF_ASSERT_EQ(result.status, CommandStatus::Successful);
+		SF_ASSERT_EQ(
+			result.message,
+			"first   [----------]   0 B  file\n"
+			"second  [#---------]   1 B  file\n"
+			"third   [#########-]  99 B  file\n");
+	}
+
+	SF_TEST(command_dispatcher, SizeBarsHandleZeroTotalWithoutDivisionByZero)
+	{
+		AppState state;
+		PopulateSizeBarTree(state, 0, 0, 0);
+
+		const CommandResult result = CommandDispatcher::Dispatch(
+			MakeCommand(CommandType::ListChildren), state);
+
+		SF_ASSERT_EQ(result.status, CommandStatus::Successful);
+		SF_ASSERT_EQ(
+			result.message,
+			"first   [----------]  0 B  file\n"
+			"second  [----------]  0 B  file\n"
+			"third   [----------]  0 B  file\n");
+	}
+
+	SF_TEST(command_dispatcher, SizeBarsNormalizeMaximumFileSizesWithoutOverflow)
+	{
+		AppState state;
+		constexpr FileSize MaximumFileSize = std::numeric_limits<FileSize>::max();
+		PopulateSizeBarTree(state, MaximumFileSize, MaximumFileSize, 0);
+
+		const CommandResult result = CommandDispatcher::Dispatch(
+			MakeCommand(CommandType::ListChildren), state);
+
+		SF_ASSERT_EQ(result.status, CommandStatus::Successful);
+		SF_ASSERT_EQ(result.message.find("first   [#####-----]") != std::string::npos, true);
+		SF_ASSERT_EQ(result.message.find("second  [#####-----]") != std::string::npos, true);
+		SF_ASSERT_EQ(result.message.find("third   [----------]") != std::string::npos, true);
 	}
 
 	SF_TEST(command_dispatcher, ShowTopRejectsInvalidAndOutOfRangeCountsWithoutChangingState)
